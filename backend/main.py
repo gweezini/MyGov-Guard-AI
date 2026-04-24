@@ -62,5 +62,9 @@ async def upload_document(file: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    # Runs the server on port 8000
+    # Print a helpful, clickable link for the developer
+    print("\n" + "="*50)
+    print("🚀 API Docs available at: http://127.0.0.1:8000/docs")
+    print("="*50 + "\n")
+    # Runs the server on port 8000 (0.0.0.0 allows mobile app to connect via Wi-Fi)
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
