@@ -15,3 +15,7 @@ __pycache__/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Node.js / Expo frontend
+MyGovGuard/node_modules/
+MyGovGuard/.expo/
