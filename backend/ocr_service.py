@@ -3,36 +3,46 @@ from PIL import Image
 import io
 import os
 
-# For Windows users, it's often necessary to specify the tesseract executable path explicitly.
-# We will check common installation paths.
-tesseract_paths = [
-    r"C:\Program Files\Tesseract-OCR\tesseract.exe",
-    r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
-    r"C:\Users\OWNER\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"
-]
+# --- STEP 1: LOCATING THE OCR ENGINE ---
+# Tesseract is picky on Windows. We need to tell Python exactly where the 'brain' is.
+# If you installed it elsewhere, just swap this path.
+TESSERACT_EXE_PATH = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
-# Set the path if we find it, otherwise rely on system PATH
-for path in tesseract_paths:
-    if os.path.exists(path):
-        pytesseract.pytesseract.tesseract_cmd = path
-        break
+# Checking if the engine is actually there before we start the fire
+if os.path.exists(TESSERACT_EXE_PATH):
+    pytesseract.pytesseract.tesseract_cmd = TESSERACT_EXE_PATH
+else:
+    print(f"⚠️ HEADS UP: Tesseract not found at {TESSERACT_EXE_PATH}!")
+    print("If you're on a different machine, please update the path or add it to your System PATH.")
 
 async def extract_text_from_image(file_bytes: bytes) -> str:
     """
-    Takes image bytes and extracts text using Tesseract OCR.
+     Converts image pixels into actual strings.
     """
     try:
-        # Load the image using Pillow
+        # 1. Open the image from memory (stream) instead of saving it to disk first.
+        # This keeps our backend snappy and clean.
         image = Image.open(io.BytesIO(file_bytes))
         
-        # Optionally pre-process the image here (e.g. convert to grayscale, etc.)
-        # image = image.convert('L')
+        # 2. Safety check: Convert to RGB. 
+        # Some PNGs with transparency (RGBA) can make Tesseract go crazy.
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
         
-        # Extract text using pytesseract
-        text = pytesseract.image_to_string(image)
+        # We're using English ('eng') for now. 
+        # Pro tip: If you want Malay support, change it to lang='eng+ms'
+        text = pytesseract.image_to_string(image, lang='eng') 
         
-        return text.strip()
-    except pytesseract.TesseractNotFoundError:
-        raise Exception("Tesseract OCR is not installed or not found in system PATH. Please install Tesseract-OCR from https://github.com/UB-Mannheim/tesseract/wiki.")
+        # Clean up the mess (remove trailing spaces/newlines)
+        extracted_text = text.strip()
+        
+        if not extracted_text:
+            return "OCR worked, but I couldn't find any readable text in this image. Try a clearer shot?"
+            
+        return extracted_text
+
     except Exception as e:
-        raise Exception(f"Failed to process OCR: {str(e)}")
+        # If something blows up, we want to know EXACTLY why.
+        error_info = f"Oops! OCR process crashed: {str(e)}"
+        print(f"❌ {error_info}")
+        raise Exception(error_info)
