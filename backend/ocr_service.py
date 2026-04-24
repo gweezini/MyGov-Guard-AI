@@ -10,7 +10,7 @@ load_dotenv()
 TESSERACT_EXE_PATH = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # The tool that converts PDF pages into imagesS
-POPPLER_PATH = os.getenv("C:\Users\User\Downloads\Release-25.12.0-0\poppler-25.12.0\Library\bin")
+POPPLER_PATH = r"C:\Users\User\Downloads\Release-25.12.0-0\poppler-25.12.0\Library\bin"
 
 # Connect Python to Tesseract
 if os.path.exists(TESSERACT_EXE_PATH):
