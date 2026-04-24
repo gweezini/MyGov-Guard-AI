@@ -31,6 +31,10 @@ Analyze the following text for:
 2. Translation: Use simple daily language.
 3. Actions: Clear steps and official links.
 
+IMPORTANT:
+- You MUST provide the "summary" and "steps" in English ONLY.
+- Even if the input text is in Malay, your response MUST be in English.
+
 Return ONLY a JSON object:
 - "status": use "scam", "safe", or "warning".
 - "summary": simple explanation.
@@ -45,7 +49,8 @@ Text:
         response = await client.chat.completions.create(
             model=model_name,
             messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
+            temperature=0.0
         )
         
         final_output = response.choices[0].message.content
