@@ -5,3 +5,5 @@ uvicorn
 openai
 python-dotenv
 python-multipart
+pytesseract
+pillow

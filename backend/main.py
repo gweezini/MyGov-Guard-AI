@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
 from zhipu_service import process_document_workflow
+from ocr_service import extract_text_from_image
 
 # Load the secrets from your .env file
 load_dotenv()
@@ -42,13 +43,18 @@ async def upload_document(file: UploadFile = File(...)):
         # TODO: Step 2 - Send to OCR Service (Tesseract / AWS Textract)
         # TODO: Step 3 - Regex masking for PII 
         
-        # --- PLACEHOLDER FOR OCR RESULT ---
-        # Replace this with the actual extracted text from Step 2
-        mock_ocr_text = "This is a final notice regarding your unpaid taxes. Click here to avoid arrest: http://scam-link.com"
+        # --- EXTRACT OCR TEXT ---
+        # Only process images for now as per our plan
+        if file.content_type.startswith("image/"):
+            extracted_text = await extract_text_from_image(contents)
+            if not extracted_text:
+                raise HTTPException(status_code=400, detail="No text could be extracted from the image.")
+        else:
+            raise HTTPException(status_code=400, detail="PDF processing is not yet implemented. Please upload an image.")
         
         # --- ZHIPU AI WORKFLOW ---
         # Call the 3-stage GLM-4 workflow
-        analysis_result = await process_document_workflow(mock_ocr_text)
+        analysis_result = await process_document_workflow(extracted_text)
         
         return {
             "status": "success",

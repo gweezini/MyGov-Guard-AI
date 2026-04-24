@@ -7,11 +7,8 @@ print("Waiting for response...\n")
 
 url = "http://127.0.0.1:8000/upload"
 
-# Create a tiny dummy file
-with open("dummy.txt", "w") as f:
-    f.write("test")
-
-files = {"file": ("dummy.pdf", open("dummy.txt", "rb"), "application/pdf")}
+# Use the new test_text.png file
+files = {"file": ("test_text.png", open("test_text.png", "rb"), "image/png")}
 
 try:
     # No timeout! Just wait as long as it takes
