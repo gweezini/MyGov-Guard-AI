@@ -3,12 +3,14 @@ from PIL import Image
 import io
 import os
 from pdf2image import convert_from_bytes
+from dotenv import load_dotenv
+load_dotenv()
 
 # The engine that reads text from images
 TESSERACT_EXE_PATH = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
-# The tool that converts PDF pages into images
-POPPLER_PATH = r'C:\Users\User\Downloads\Release-25.12.0-0\poppler-25.12.0\Library\bin'
+# The tool that converts PDF pages into imagesS
+POPPLER_PATH = os.getenv("POPPLER_PATH")
 
 # Connect Python to Tesseract
 if os.path.exists(TESSERACT_EXE_PATH):
