@@ -14,7 +14,7 @@ app = FastAPI(title="MyGov-Guard AI Backend", version="1.0")
 # Setup CORS so your React Native frontend can communicate with this API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, change this to your specific frontend domain
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,39 +27,36 @@ async def root():
 @app.post("/upload")
 async def upload_document(file: UploadFile = File(...)):
     """
-    Receives an image or PDF document from the mobile app.
-    It reads the file, extracts the text using OCR, and sends it to Zhipu AI.
+    Receives images or PDFs from the mobile app. 
+    First, it extracts text using our OCR service, then sends it to 
+    the AI brain (Zhipu) for scam analysis.
     """
     try:
-        # 1. Validate file type (Now accepts BOTH images and PDFs!)
+        # Step 1: The Bouncer check. We now allow BOTH images and PDFs to enter!
         if not file.content_type.startswith("image/") and file.content_type != "application/pdf":
             raise HTTPException(status_code=400, detail="Invalid file type. Please upload an image or PDF.")
         
-        # 2. Read file contents into memory
+        # Step 2: Read the file data into memory
         contents = await file.read()
         file_size_kb = len(contents) / 1024
         
-        # TODO: Step 1 - Upload to AWS S3 (Temporary Storage)
-        # TODO: Step 3 - Regex masking for PII 
+        print(f"\n🚀 Received a new file: {file.filename}")
         
-        # --- EXTRACT OCR TEXT ---
-        print(f"\n🚀 Processing new upload: {file.filename}")
-        
-        # 3. ⚡ THE MAGIC FIX: We pass 'file.filename' to the OCR service 
-        # so it knows whether to use Tesseract (for images) or Poppler (for PDFs).
+        # Step 3: Extract the text. 
+        # (Crucial detail: passing the filename so OCR knows whether to use Tesseract for images or Poppler for PDFs!)
         extracted_text = await extract_text_from_image(contents, filename=file.filename)
         
         if not extracted_text:
-            raise HTTPException(status_code=400, detail="No text could be extracted from the document. Please try a clearer image.")
+            raise HTTPException(status_code=400, detail="No text could be extracted. Please try a clearer image.")
         
-        # --- ZHIPU AI WORKFLOW ---
-        print("🤖 Text extracted successfully! Sending to Zhipu AI...")
+        print("🤖 Text successfully extracted! Sending to Zhipu AI for analysis...")
         
-        # 4. Call your custom 3-stage GLM-4 workflow from zhipu_service.py
+        # Step 4: Pass the extracted text to your custom 3-stage GLM-4 workflow
         analysis_result = await process_document_workflow(extracted_text)
         
         print("✅ AI Analysis Complete!")
         
+        # Step 5: Send everything back to the mobile app
         return {
             "status": "success",
             "filename": file.filename,
@@ -68,15 +65,14 @@ async def upload_document(file: UploadFile = File(...)):
         }
         
     except Exception as e:
+        # If something crashes, log it to the terminal and let the app know
         print(f"❌ Backend Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
-    # Print a helpful, clickable link for the developer
     print("\n" + "="*50)
     print("🚀 API Docs available at: http://127.0.0.1:8000/docs")
     print("="*50 + "\n")
-    # Runs the server on port 8000 (0.0.0.0 allows mobile app to connect via Wi-Fi)
-    # Note: Because reload=True is set, simply saving this file should restart the server automatically!
+    # reload=True means the server auto-restarts every time you hit save. Super handy!
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

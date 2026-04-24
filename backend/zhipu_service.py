@@ -3,74 +3,70 @@ import json
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
-# Load environment variables
+# Load environment variables from .env
 load_dotenv()
 
 async def process_document_workflow(ocr_text: str) -> dict:
     """
-    Executes a 3-stage workflow using Ilmu Console API (OpenAI compatible):
-    Agent 1: Scam detection
-    Agent 2: De-jargon translation
-    Agent 3: Action generation
-    
-    Returns a structured JSON response containing:
-    - status
-    - simplified_text
-    - next_steps
+    Executes a 3-stage scam analysis workflow using Ilmu AI.
+    1. Detects Scams 2. Simplifies Jargon 3. Generates Action Steps.
     """
     api_key = os.getenv("ZHIPUAI_API_KEY")
     if not api_key:
         raise ValueError("ZHIPUAI_API_KEY is not set in environment variables.")
         
+    # Use OpenAI client to communicate with Ilmu AI's compatible endpoint
     client = AsyncOpenAI(
         api_key=api_key,
         base_url="https://api.ilmu.ai/v1"
     )
     
-    # We use the specific model from Ilmu Console
+    # Specific model provided by the hackathon
     model_name = "ilmu-glm-5.1" 
     
-    # --- Optimized Single-Stage Workflow ---
-    prompt = f"""You are an expert AI assistant that processes OCR text from documents or messages.
-Please perform the following 3 tasks in order:
-1. Scam Detection: Analyze the OCR text and determine if it is a scam/phishing attempt. Decide on a short status ('Safe', 'Warning: Potential Scam', 'Scam').
-2. Translation: Translate any complex jargon or bureaucratic language into simple, easy-to-understand terms.
-3. Action Generation: Generate a list of actionable next steps for the user based on the analysis.
+    # Optimized prompt to ensure the AI returns the exact JSON keys we need
+    prompt = f"""You are 'MyGov-Guard AI', an expert in Malaysian legal and government documents.
+Task:
+1. Scam Detection: Check for suspicious links, threats, or unofficial language.
+2. Translation: Explain the document in very simple English/Malay (no jargon).
+3. Actions: Provide clear steps for the user and official government links.
 
-You MUST output your final answer as a pure JSON object containing EXACTLY these three keys:
-- "status": the short status string from task 1.
-- "simplified_text": the translated simple text from task 2.
-- "next_steps": a list of strings representing the actions to take from task 3.
+Output Requirements:
+- You MUST return a PURE JSON object.
+- 'status': strictly use "scam", "safe", or "warning".
+- 'summary': a clear, simplified explanation of the document.
+- 'steps': a list of next steps for the user.
+- 'official_links': a list of safe URLs for verification.
 
-Original OCR Text:
+Text to analyze:
 {ocr_text}
+"""
 
-Output JSON only."""
-
-    response = await client.chat.completions.create(
-        model=model_name,
-        messages=[{"role": "user", "content": prompt}],
-        response_format={"type": "json_object"}
-    )
-    
-    final_output = response.choices[0].message.content
-    
     try:
-        if not final_output:
-            raise ValueError("Empty response content from API")
-            
+        # Call the AI model
+        response = await client.chat.completions.create(
+            model=model_name,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}
+        )
+        
+        final_output = response.choices[0].message.content
+        
+        # Clean up any potential markdown formatting from AI response
         clean_output = final_output.strip()
         if clean_output.startswith("```json"):
             clean_output = clean_output[7:]
         if clean_output.endswith("```"):
             clean_output = clean_output[:-3]
             
-        result_json = json.loads(clean_output.strip())
-        return result_json
+        return json.loads(clean_output.strip())
+        
     except Exception as e:
-        # Fallback if parsing fails or response is weird
+        # Fallback mechanism: prevents the backend from crashing during 504 Timeout or API errors
+        print(f"❌ AI Service Error: {str(e)}")
         return {
-            "status": "Error analyzing document",
-            "simplified_text": "Could not simplify the text. Please review manually.",
-            "next_steps": ["Ensure you are reading the document carefully.", "Contact support if the issue persists."]
+            "status": "error", 
+            "summary": "⚠️ AI Processing Timeout. The document might be too long or the server is busy.",
+            "steps": ["Try taking a screenshot of just the important part.", "Ensure your internet connection is stable."],
+            "official_links": []
         }
