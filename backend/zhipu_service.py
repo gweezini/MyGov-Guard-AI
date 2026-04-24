@@ -1,6 +1,10 @@
 import os
 import json
+from dotenv import load_dotenv
 from openai import AsyncOpenAI
+
+# Load environment variables
+load_dotenv()
 
 async def process_document_workflow(ocr_text: str) -> dict:
     """
