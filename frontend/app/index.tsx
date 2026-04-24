@@ -25,37 +25,22 @@ export default function ScamGuardScreen() {
 
       const data = await response.json();
       
-      const summaryText = data.analysis?.summary?.toLowerCase() || "";
-
-// Detect timeout / fake success from backend
-const isTimeout =
-  summaryText.includes("timeout") ||
-  summaryText.includes("too long") ||
-  summaryText.includes("took too long");
-
-if (data.status === "success" && !isTimeout) {
-  // ✅ REAL SUCCESS
-  setResult({
-    error: false,
-    status: data.analysis.status,
-    summary: data.analysis.summary,
-    steps: data.analysis.steps
-  });
-} else {
-  // ❌ ERROR (including fake success)
-  setResult({
-    error: true,
-    summary:
-      data.analysis?.summary ||
-      data.error ||
-      "AI processing failed. Please try again.",
-    steps: [
-      "Try uploading a smaller screenshot",
-      "Avoid full PDF documents",
-      "Check your internet connection"
-    ]
-  });
-}
+      if (data.status === "success") {
+  
+        setResult({
+          error: data.analysis.status === 'error',
+          status: data.analysis.status, // "safe" (official) or "scam"
+          summary: data.analysis.summary,
+          steps: data.analysis.steps
+        });
+      } else {
+        // ❌ BACKEND ERROR CASE (e.g. 504 Timeout)
+        setResult({
+          error: true, // Mark as system error
+          summary: data.error || "AI server timeout, please try a shorter document.",
+          steps: ["Try a smaller screenshot.", "Check your internet connection."]
+        });
+      }
     } catch (error) {
       // ❌ NETWORK FAILED CASE
       setResult({
