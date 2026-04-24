@@ -25,22 +25,37 @@ export default function ScamGuardScreen() {
 
       const data = await response.json();
       
-      if (data.status === "success") {
-        // ✅ SUCCESS CASE: Separate data into the success structure
-        setResult({
-          error: false, // Explicitly no error
-          status: data.analysis.status, // "safe" (official) or "scam"
-          summary: data.analysis.summary,
-          steps: data.analysis.steps
-        });
-      } else {
-        // ❌ BACKEND ERROR CASE (e.g. 504 Timeout)
-        setResult({
-          error: true, // Mark as system error
-          summary: data.error || "AI server timeout, please try a shorter document.",
-          steps: ["Try a smaller screenshot.", "Check your internet connection."]
-        });
-      }
+      const summaryText = data.analysis?.summary?.toLowerCase() || "";
+
+// Detect timeout / fake success from backend
+const isTimeout =
+  summaryText.includes("timeout") ||
+  summaryText.includes("too long") ||
+  summaryText.includes("took too long");
+
+if (data.status === "success" && !isTimeout) {
+  // ✅ REAL SUCCESS
+  setResult({
+    error: false,
+    status: data.analysis.status,
+    summary: data.analysis.summary,
+    steps: data.analysis.steps
+  });
+} else {
+  // ❌ ERROR (including fake success)
+  setResult({
+    error: true,
+    summary:
+      data.analysis?.summary ||
+      data.error ||
+      "AI processing failed. Please try again.",
+    steps: [
+      "Try uploading a smaller screenshot",
+      "Avoid full PDF documents",
+      "Check your internet connection"
+    ]
+  });
+}
     } catch (error) {
       // ❌ NETWORK FAILED CASE
       setResult({
@@ -80,7 +95,7 @@ export default function ScamGuardScreen() {
         {result && !loading && (
           <View style={styles.resultCard}>
             
-            {/* 🔥 CORE FIX: Separating Error UI from Result UI */}
+            {/* CORE FIX: Separating Error UI from Result UI */}
             {result.error ? (
               <Text style={[styles.statusTitle, {color: '#FD7E14'}]}>
                 ❌ PROCESSING ERROR
@@ -124,7 +139,7 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingTop: 60 },
   header: { fontSize: 28, fontWeight: 'bold', color: '#212529', textAlign: 'center' },
   subHeader: { fontSize: 14, color: '#6C757D', textAlign: 'center', marginBottom: 30 },
-  buttonRow: { flexDirection: 'row', justifyContent: 'row', justifyContent: 'space-between', marginBottom: 20 },
+  buttonRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
   actionBtn: { backgroundColor: '#007AFF', padding: 15, borderRadius: 12, flex: 0.48, alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: '600' },
   resultCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, elevation: 4 },
