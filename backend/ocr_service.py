@@ -10,7 +10,7 @@ load_dotenv()
 TESSERACT_EXE_PATH = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # The tool that converts PDF pages into imagesS
-POPPLER_PATH = os.getenv("POPPLER_PATH")
+POPPLER_PATH = os.getenv("C:\Users\User\Downloads\Release-25.12.0-0\poppler-25.12.0\Library\bin")
 
 # Connect Python to Tesseract
 if os.path.exists(TESSERACT_EXE_PATH):
@@ -53,7 +53,6 @@ async def extract_text_from_image(file_bytes: bytes, filename: str = "image.jpg"
             return pytesseract.image_to_string(image, lang='eng').strip()
 
     except Exception as e:
-        # If anything fails, yell loudly in the terminal
-        error_info = f"OCR Error: {str(e)}"
-        print(f"❌ {error_info}")
-        raise Exception(error_info)
+        # Just log the error and return empty text
+        print(f"❌ OCR processing failed: {str(e)}")
+        return ""

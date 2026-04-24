@@ -46,8 +46,20 @@ async def upload_document(file: UploadFile = File(...)):
         # (Crucial detail: passing the filename so OCR knows whether to use Tesseract for images or Poppler for PDFs!)
         extracted_text = await extract_text_from_image(contents, filename=file.filename)
         
-        if not extracted_text:
-            raise HTTPException(status_code=400, detail="No text could be extracted. Please try a clearer image.")
+        if not extracted_text or len(extracted_text.strip()) == 0:
+            print("⚠️ No readable text found. Sending friendly error to App.")
+            return {
+                "status": "success",  # Use success so the network doesn't throw 500
+                "analysis": {
+                    "status": "error",
+                    "summary": "⚠️ No readable text found. Please ensure you are uploading a clear document.",
+                    "steps": [
+                        "Take a clearer photo",
+                        "Make sure there is text in the image",
+                        "Do not upload scenery or blank photos"
+                    ]
+                }
+            }
         
         print("🤖 Text successfully extracted! Sending to Zhipu AI for analysis...")
         
