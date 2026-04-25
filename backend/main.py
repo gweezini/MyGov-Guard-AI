@@ -1,8 +1,8 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form 
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Response
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
-from zhipu_service import process_document_workflow
+from zhipu_service import process_document_workflow, generate_speech_audio
 from ocr_service import extract_text_from_image
 
 # Load environment variables from your .env file
@@ -24,6 +24,28 @@ app.add_middleware(
 async def root():
     """Health check endpoint to verify backend status."""
     return {"message": "MyGov-Guard AI Backend is running!"}
+
+@app.get("/tts")
+async def text_to_speech(text: str, language: str = "en"):
+    """
+    Receives text and returns high-quality MP3 audio content.
+    Used by the mobile app for localized voice synthesis.
+    """
+    try:
+        if not text:
+            raise HTTPException(status_code=400, detail="Text parameter is required")
+            
+        print(f"🎙️ Generating TTS for language: {language}")
+        audio_content = await generate_speech_audio(text, language)
+        
+        return Response(
+            content=audio_content, 
+            media_type="audio/mpeg",
+            headers={"Content-Disposition": "attachment; filename=speech.mp3"}
+        )
+    except Exception as e:
+        print(f"❌ TTS Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/upload")
 async def upload_document(
@@ -104,7 +126,7 @@ async def upload_document(
 if __name__ == "__main__":
     import uvicorn
     print("\n" + "="*50)
-    print("🚀 API Ready. Docs: http://127.0.0.1:8000/docs")
+    print("API Ready. Docs: http://127.0.0.1:8000/docs")
     print("="*50 + "\n")
     # Auto-reload enabled for easier development
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

@@ -1,33 +1,36 @@
 import os
 import json
 from dotenv import load_dotenv
-from openai import AsyncOpenAI
+from google import genai
+from google.cloud import texttospeech
 
 # Load environment variables from .env
 load_dotenv()
 
 async def process_document_workflow(ocr_text: str, language: str = "en") -> dict:
     """
-    Executes a scam analysis workflow using Ilmu AI.
+    Executes a scam analysis workflow using Google Vertex AI (Gemini).
+    Handles scams, jargon simplification, and next steps.
     Strictly localized to output in the user's selected language.
     """
-    api_key = os.getenv("ZHIPUAI_API_KEY")
-    if not api_key:
-        raise ValueError("ZHIPUAI_API_KEY is not set in environment variables.")
-        
-    # Use OpenAI client format to talk to Ilmu AI
-    client = AsyncOpenAI(
-        api_key=api_key,
-        base_url="https://api.ilmu.ai/v1"
+    # 1. Setup Authentication for Vertex AI using your JSON key
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "gcp-key.json"
+    
+    # 2. Initialize the Google GenAI Client
+    client = genai.Client(
+        vertexai=True,
+        project="mygovguard",
+        location="us-central1"
     )
     
-    # The official hackathon model
-    model_name = "ilmu-glm-5.1" 
-
+    # The official Gemini model on Vertex AI (Found via scan)
+    model_name = "gemini-2.5-flash" 
+    
     # Map language code to full name
     lang_map = {"zh": "Chinese", "ms": "Malay", "en": "English"}
     target_lang = lang_map.get(language, "English")
-    
+
+    # Prompt optimized for your Frontend UI
     prompt = f"""
 You are "MyGov-Guard AI", a Malaysian scam detection system.
 
@@ -59,7 +62,7 @@ CLASSIFICATION:
 - Score = 2 or3 → "warning"
 - Score ≤ 1 → "safe"
 
-# OUTPUT FORMAT (STRICT JSON ONLY):
+OUTPUT FORMAT (STRICT JSON ONLY):
 {{
   "status": "safe | warning | scam",
   "summary": "[Provide your explanation here strictly in {target_lang} language]",
@@ -67,24 +70,28 @@ CLASSIFICATION:
   "official_links": []
 }}
 
-# TEXT TO ANALYZE:
+Text:
 {ocr_text}
 """
 
     try:
-        response = await client.chat.completions.create(
+        # 3. Call Gemini on Vertex AI (Async)
+        response = await client.aio.models.generate_content(
             model=model_name,
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"},
-            temperature=0.0
+            contents=prompt,
+            config={
+                'response_mime_type': 'application/json',
+                'temperature': 0.0
+            }
         )
         
-        final_output = response.choices[0].message.content
-        # Clean any potential markdown formatting
-        clean_output = final_output.strip().replace("```json", "").replace("```", "")
-        return json.loads(clean_output)
+        # 4. Parse the JSON response
+        return json.loads(response.text)
         
     except Exception as e:
+        # THE SAFETY NET: Returns "error" status to fix the UI bug
+        print(f"AI Error: {str(e)}")
+        
         # Multi-language Safety Net for connection errors
         error_msg = {
             "zh": "⚠️ 网络超时: AI 服务器忙。请尝试更清晰的截图。",
@@ -93,10 +100,54 @@ CLASSIFICATION:
         }
         current_err = error_msg.get(language, error_msg["en"])
         
-        print(f"❌ AI Error: {str(e)}")
         return {
             "status": "error", 
             "summary": current_err,
-            "steps": ["Try again later"],
+            "steps": ["Try a shorter screenshot instead of a full PDF.", "Check your phone hotspot connection."],
             "official_links": []
         }
+
+async def generate_speech_audio(text: str, language: str = "en"):
+    """
+    Converts text to high-quality MP3 audio using Google Cloud TTS.
+    Supports localized voices for English, Chinese, and Malay.
+    """
+    # Ensure GCP credentials are set
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "gcp-key.json"
+    
+    client = texttospeech.TextToSpeechClient()
+    
+    # Voice Mapping for MyGov-Guard localization
+    voice_map = {
+        "zh": "cmn-CN-Wavenet-A",
+        "ms": "ms-MY-Wavenet-A",
+        "en": "en-US-Wavenet-D"
+    }
+    
+    lang_code_map = {
+        "zh": "cmn-CN",
+        "ms": "ms-MY",
+        "en": "en-US"
+    }
+    
+    synthesis_input = texttospeech.SynthesisInput(text=text)
+    
+    voice = texttospeech.VoiceSelectionParams(
+        language_code=lang_code_map.get(language, "en-US"),
+        name=voice_map.get(language, "en-US-Wavenet-D")
+    )
+    
+    audio_config = texttospeech.AudioConfig(
+        audio_encoding=texttospeech.AudioEncoding.MP3,
+        pitch=0.0,
+        speaking_rate=0.9 # Slightly slower for clarity
+    )
+    
+    # Call Google Cloud TTS API
+    response = client.synthesize_speech(
+        input=synthesis_input, 
+        voice=voice, 
+        audio_config=audio_config
+    )
+    
+    return response.audio_content
