@@ -4,15 +4,15 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-// Import LanguageContext to support multi-language and get the current 'lang'
+// Import LanguageContext for multi-language support
 import { LanguageContext } from './_layout'; 
 
 /**
  * Scan Screen Component
- * Handles file uploads and AI analysis with cross-platform alert fixes.
+ * Updated with Intelligent Error States: Distinguishes between No Text and System Errors.
  */
 export default function ScanScreen() {
-  // Access global language state
+  // Access global translations and current language
   const { t, lang } = useContext(LanguageContext);
   
   const [loading, setLoading] = useState(false);
@@ -20,20 +20,17 @@ export default function ScanScreen() {
 
   /**
    * Universal Alert Function
-   * FIXED: This replaces the problematic prompt/alert logic to prevent PC/Android crashes.
    */
   const showUniversalAlert = (title: string, message: string) => {
     if (Platform.OS === 'web') {
-      // Use browser alert for PC
       window.alert(`${title}: ${message}`);
     } else {
-      // Use native alert for mobile
       Alert.alert(title, message);
     }
   };
 
   /**
-   * Save scan result to history
+   * Saves scan results to local history (Only for valid analysis)
    */
   const saveToHistory = async (status: string, summary: string, fileName: string, steps: string[]) => {
     try {
@@ -56,7 +53,7 @@ export default function ScanScreen() {
   };
 
   /**
-   * Upload File to Backend
+   * Uploads file to FastAPI and sends language context
    */
   const uploadFile = async (uri: string, name: string, type: string) => {
     setLoading(true);
@@ -65,7 +62,6 @@ export default function ScanScreen() {
     const formData = new FormData();
     // @ts-ignore
     formData.append('file', { uri, name, type });
-    // Send current language to AI backend
     formData.append('language', lang); 
 
     try {
@@ -89,18 +85,20 @@ export default function ScanScreen() {
           steps: data.analysis.steps
         });
 
-        saveToHistory(data.analysis.status, data.analysis.summary, name, data.analysis.steps);
+        // Only save to history if it's a real scam analysis (not an error)
+        if (data.analysis.status !== 'error') {
+          saveToHistory(data.analysis.status, data.analysis.summary, name, data.analysis.steps);
+        }
       } else {
         throw new Error("Server Error");
       }
     } catch (error) {
-      // FIXED: Using universal alert instead of direct Alert.alert to avoid crashes
-      showUniversalAlert("Connection Failed", "Unable to reach the AI server.");
+      // Set to System Error state if fetch fails
       setResult({
         error: true,
         status: 'error',
-        summary: "Connection timeout. Ensure the backend is running.",
-        steps: ["Check backend terminal", "Verify local IP address"]
+        summary: "⚠️ Connection Failed: Unable to reach the AI server. Please check your network.",
+        steps: ["Ensure the backend server is running", "Check your internet connection"]
       });
     } finally {
       setLoading(false);
@@ -109,14 +107,13 @@ export default function ScanScreen() {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Dynamic Header */}
       <View style={styles.headerArea}>
         <Text style={styles.title}>{t.scanTitle}</Text>
         <Text style={styles.subtitle}>{t.scanSub}</Text>
       </View>
 
       <View style={styles.content}>
-        {/* Upload Buttons */}
+        {/* Upload Action Buttons */}
         <View style={styles.buttonRow}>
           <TouchableOpacity 
             style={styles.uploadCard} 
@@ -145,7 +142,6 @@ export default function ScanScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Loading UI */}
         {loading && (
           <View style={styles.loaderBox}>
             <ActivityIndicator size="large" color="#007AFF" />
@@ -153,13 +149,32 @@ export default function ScanScreen() {
           </View>
         )}
 
-        {/* AI Result Card */}
+        {/* AI Result Card with Intelligent Header Logic */}
         {result && !loading && (
           <View style={[styles.resultReport, result.status === 'scam' && styles.scamBorder]}>
-            <View style={[styles.reportHeader, { backgroundColor: result.status === 'safe' ? '#34C759' : '#FF3B30' }]}>
-               <Ionicons name={result.status === 'safe' ? "checkmark-circle" : "alert-circle"} size={50} color="white" />
+            
+            {/* 🌟 Final Integrated Header Logic */}
+            <View style={[
+              styles.reportHeader, 
+              { 
+                // Grey for Error/Failed, Green for Safe, Red for Scam/Warning
+                backgroundColor: result.error ? '#4A4A4A' : (result.status === 'safe' ? '#34C759' : '#FF3B30') 
+              }
+            ]}>
+               <Ionicons 
+                  name={
+                    result.error 
+                      ? (result.summary.includes("文字") || result.summary.includes("text") ? "search-outline" : "construct") 
+                      : (result.status === 'safe' ? "checkmark-circle" : "alert-circle")
+                  } 
+                  size={50} color="white" 
+               />
                <Text style={styles.reportStatusText}>
-                 {result.error ? "SYSTEM ERROR" : (result.status === 'safe' ? "OFFICIAL VERIFIED" : "SCAM DETECTED")}
+                 {
+                    result.error 
+                      ? (result.summary.includes("文字") || result.summary.includes("text") ? "SCAN FAILED" : "SYSTEM ERROR") 
+                      : (result.status === 'safe' ? "OFFICIAL VERIFIED" : "SCAM DETECTED")
+                 }
                </Text>
             </View>
 

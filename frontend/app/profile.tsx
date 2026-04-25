@@ -1,42 +1,36 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
-// Import LanguageContext from layout for multi-language support
 import { LanguageContext } from './_layout'; 
 
-/**
- * Profile Screen Component
- * Connected to LanguageContext and fixed for Cross-Platform (iOS/Android/Web).
- */
 export default function ProfileScreen() {
-  // Pull translation object 't' and language controls from Context
   const { lang, changeLanguage, t } = useContext(LanguageContext);
   
   const [userName, setUserName] = useState('User'); 
+  const [isEditing, setIsEditing] = useState(false); // New state for editing mode
+  const [tempName, setTempName] = useState(''); // To hold text while typing
   const isFocused = useIsFocused();
 
-  // Load user data whenever the screen comes into focus
   useEffect(() => {
     if (isFocused) {
       loadUserData();
     }
   }, [isFocused]);
 
-  // Retrieve saved user name from local storage
   const loadUserData = async () => {
     const savedName = await AsyncStorage.getItem('user_name');
-    if (savedName) setUserName(savedName);
+    if (savedName) {
+      setUserName(savedName);
+      setTempName(savedName);
+    }
   };
 
-  /**
-   * Handle Profile Name Update
-   * FIXED: Added logic to prevent crashes on Web/Android where Alert.prompt is missing.
-   */
+  // 🌟 Logic changed: On Android, we toggle an input field instead of a popup
   const handleEditName = () => {
-    // 1. Check if the device is iOS (Alert.prompt works here)
     if (Platform.OS === 'ios') {
+      // Keep iOS clean with the native prompt
       Alert.prompt(
         t.editProfile,
         t.editHint,
@@ -44,63 +38,75 @@ export default function ProfileScreen() {
           { text: "Cancel", style: "cancel" },
           { 
             text: "Save", 
-            onPress: async (newName?: string) => {
-              if (newName && newName.trim() !== "") {
-                saveNameToStorage(newName);
-              }
+            onPress: (newName?: string) => {
+              if (newName && newName.trim() !== "") saveNameToStorage(newName);
             }
           }
         ],
         "plain-text",
         userName
       );
-    } 
-    // 2. For Web or Android (Alert.prompt is NOT a function here)
-    else {
-      const newName = window.prompt(t.editHint, userName);
-      if (newName !== null && newName.trim() !== "") {
-        saveNameToStorage(newName);
-      }
+    } else {
+      // For Android and Web: Enter inline editing mode
+      setTempName(userName);
+      setIsEditing(true);
     }
   };
 
-  // Helper function to save name and update UI
   const saveNameToStorage = async (name: string) => {
     try {
       await AsyncStorage.setItem('user_name', name);
       setUserName(name);
-      // Small feedback for the user
+      setIsEditing(false); // Close input field
       if (Platform.OS !== 'web') {
         Alert.alert("Success", "Profile name updated!");
       }
     } catch (err) {
-      console.error("Failed to save name", err);
+      console.error(err);
     }
   };
 
   return (
     <ScrollView style={styles.container}>
-      {/* Profile Header with Navy Blue Background */}
       <View style={styles.headerCard}>
         <View style={styles.avatarContainer}>
           <Ionicons name="person-circle" size={80} color="white" />
         </View>
         
-        <TouchableOpacity style={{ alignItems: 'center' }} onPress={handleEditName}>
-          <Text style={styles.userName}>{userName}</Text>
-          <Text style={styles.editHint}>{t.editHint} ✏️</Text>
-        </TouchableOpacity>
+        <View style={{ alignItems: 'center', width: '100%' }}>
+          {isEditing ? (
+            // 🌟 Android & Web friendly Input Box
+            <View style={styles.editContainer}>
+              <TextInput
+                style={styles.nameInput}
+                value={tempName}
+                onChangeText={setTempName}
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={() => saveNameToStorage(tempName)}
+              />
+              <TouchableOpacity onPress={() => saveNameToStorage(tempName)}>
+                <Ionicons name="checkmark-circle" size={30} color="#34C759" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setIsEditing(false)}>
+                <Ionicons name="close-circle" size={30} color="#FF3B30" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity style={{ alignItems: 'center' }} onPress={handleEditName}>
+              <Text style={styles.userName}>{userName}</Text>
+              <Text style={styles.editHint}>{t.editHint} ✏️</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         <Text style={styles.userRole}>{t.verified}</Text>
-        
-        {/* Shield Pro Badge */}
         <View style={styles.shieldBadge}>
           <Ionicons name="shield-checkmark" size={16} color="#34C759" />
           <Text style={styles.shieldText}>Shield Pro - Active</Text>
         </View>
       </View>
 
-      {/* Account Settings Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.account}</Text>
         <View style={styles.menuCard}>
@@ -111,7 +117,6 @@ export default function ProfileScreen() {
           />
           <MenuItem icon="notifications-outline" title={t.notifications} />
           
-          {/* Multi-language selection row */}
           <View style={styles.languageContainer}>
             <View style={styles.menuLeft}>
               <Ionicons name="language-outline" size={22} color="#48484A" />
@@ -122,15 +127,9 @@ export default function ProfileScreen() {
                 <TouchableOpacity 
                   key={code}
                   onPress={() => changeLanguage(code)}
-                  style={[
-                    styles.langOption, 
-                    lang === code && styles.activeLangOption
-                  ]}
+                  style={[styles.langOption, lang === code && styles.activeLangOption]}
                 >
-                  <Text style={[
-                    styles.langOptionText, 
-                    lang === code && styles.activeLangText
-                  ]}>
+                  <Text style={[styles.langOptionText, lang === code && styles.activeLangText]}>
                     {code === 'en' ? 'EN' : code === 'ms' ? 'MS' : '中文'}
                   </Text>
                 </TouchableOpacity>
@@ -140,7 +139,6 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Support Section using translations */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.support}</Text>
         <View style={styles.menuCard}>
@@ -150,7 +148,6 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Logout button row */}
       <TouchableOpacity style={styles.logoutBtn}>
         <Text style={styles.logoutText}>{t.logout}</Text>
       </TouchableOpacity>
@@ -158,9 +155,6 @@ export default function ProfileScreen() {
   );
 }
 
-/**
- * MenuItem Component for clean code structure
- */
 const MenuItem = ({ icon, title, extra, onPress }: any) => (
   <TouchableOpacity style={styles.menuItem} onPress={onPress}>
     <View style={styles.menuLeft}>
@@ -180,6 +174,10 @@ const styles = StyleSheet.create({
   avatarContainer: { marginBottom: 10 },
   userName: { color: 'white', fontSize: 26, fontWeight: 'bold' },
   editHint: { color: '#007AFF', fontSize: 12, marginTop: 4, fontWeight: '600' },
+  // 🌟 New Styles for Inline Editing
+  editContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, paddingHorizontal: 10, marginHorizontal: 20 },
+  nameInput: { color: 'white', fontSize: 22, fontWeight: 'bold', minWidth: 150, paddingVertical: 10, textAlign: 'center' },
+  
   userRole: { color: '#8E8E93', fontSize: 14, marginTop: 10 },
   shieldBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(52, 199, 89, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginTop: 15, borderWidth: 1, borderColor: '#34C759' },
   shieldText: { color: '#34C759', fontSize: 12, fontWeight: '600', marginLeft: 5 },
