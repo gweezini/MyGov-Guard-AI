@@ -19,3 +19,4 @@ Thumbs.db
 # Node.js / Expo frontend
 MyGovGuard/node_modules/
 MyGovGuard/.expo/
+backend/gcp-key.json
