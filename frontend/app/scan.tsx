@@ -65,7 +65,7 @@ export default function ScanScreen() {
     formData.append('language', lang); 
 
     try {
-      const apiUrl = 'http://172.20.10.2:8000'; 
+      const apiUrl = 'http://10.198.102.17:8000'; 
       const response = await fetch(`${apiUrl}/upload`, {
         method: 'POST',
         body: formData,
