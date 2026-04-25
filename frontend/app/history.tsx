@@ -1,16 +1,16 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Modal, ScrollView, Platform } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Modal, ScrollView, Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LanguageContext } from './_layout'; 
 
 /**
- * HistoryScreen Component
- * Now fully connected to the central language broadcast.
+ * History Screen Component
+ * - Fixed: 'Warning' grouped under 'Scam' for consistent statistics.
+ * - Added: Clear All History function with a red trash icon.
  */
 export default function HistoryScreen() {
-  // Access the translation object 't' from Context
   const { t } = useContext(LanguageContext);
   
   const [fullHistory, setFullHistory] = useState([]); 
@@ -19,14 +19,15 @@ export default function HistoryScreen() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const isFocused = useIsFocused();
 
-  // Stats calculation for the filter chips
+  /**
+   * 🌟 Stats Logic: Syncs 'Scam' and 'Warning' together
+   */
   const stats = {
     total: fullHistory.length,
     safe: fullHistory.filter((item: any) => item.status === 'safe').length,
-    scam: fullHistory.filter((item: any) => item.status === 'scam').length,
+    scam: fullHistory.filter((item: any) => item.status === 'scam' || item.status === 'warning').length,
   };
 
-  // Date formatter (Logic remains the same)
   const formatDisplayDate = (dateString: string) => {
     try {
       const recordDate = new Date(dateString);
@@ -36,45 +37,92 @@ export default function HistoryScreen() {
     } catch (e) { return dateString; }
   };
 
-  // Load local scan history whenever screen is focused
+  /**
+   * Load Data from Local Storage
+   */
+  const getHistory = async () => {
+    try {
+      const data = await AsyncStorage.getItem('user_history');
+      if (data) {
+        const parsed = JSON.parse(data);
+        setFullHistory(parsed);
+        setDisplayHistory(parsed);
+      } else {
+        setFullHistory([]);
+        setDisplayHistory([]);
+      }
+    } catch (error) { console.error("History Load Error:", error); }
+  };
+
   useEffect(() => {
-    const getHistory = async () => {
-      try {
-        const data = await AsyncStorage.getItem('user_history');
-        if (data) {
-          const parsed = JSON.parse(data);
-          setFullHistory(parsed);
-          setDisplayHistory(parsed);
-        }
-      } catch (error) { console.error("History Load Error:", error); }
-    };
     if (isFocused) getHistory();
   }, [isFocused]);
 
-  // Apply filtering based on Safe / Scam status
+  /**
+   * 🌟 Filtering Logic: Includes 'Warning' under the 'Scam' tab
+   */
   useEffect(() => {
     if (filter === 'All') {
       setDisplayHistory(fullHistory);
+    } else if (filter === 'Scam') {
+      const filtered = fullHistory.filter((item: any) => 
+        item.status === 'scam' || item.status === 'warning'
+      );
+      setDisplayHistory(filtered);
     } else {
       const filtered = fullHistory.filter((item: any) => item.status === filter.toLowerCase());
       setDisplayHistory(filtered);
     }
   }, [filter, fullHistory]);
 
+  /**
+   * 🌟 NEW: Clear All History with Confirmation Alert
+   */
+  const handleClearHistory = () => {
+    Alert.alert(
+      t.historyTitle,
+      "Delete all scan history? This action cannot be reversed.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete All", 
+          style: "destructive", 
+          onPress: async () => {
+            await AsyncStorage.removeItem('user_history');
+            setFullHistory([]);
+            setDisplayHistory([]);
+            setFilter('All');
+          } 
+        }
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
-      {/* Header using translated strings */}
+      {/* Header Area with Trash Icon */}
       <View style={styles.headerArea}>
-        <Text style={styles.title}>{t.historyTitle}</Text>
-        <Text style={styles.headerSubtitle}>{t.historySub}</Text>
+        <View style={styles.headerTopRow}>
+          <View>
+            <Text style={styles.title}>{t.historyTitle}</Text>
+            <Text style={styles.headerSubtitle}>{t.historySub}</Text>
+          </View>
+          
+          {/* Only show trash icon if there's history to delete */}
+          {fullHistory.length > 0 && (
+            <TouchableOpacity onPress={handleClearHistory} style={styles.trashBtn}>
+              <Ionicons name="trash-outline" size={24} color="#FF3B30" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <View style={styles.contentBody}>
-        {/* Filter Chips using translated labels */}
+        {/* Filter Chips */}
         <View style={styles.filterRow}>
           {['All', 'Safe', 'Scam'].map((type) => {
-            // Map the type to the corresponding translation key
             const label = type === 'All' ? t.all : (type === 'Safe' ? t.safe : t.scam);
+            const count = type === 'All' ? stats.total : (type === 'Safe' ? stats.safe : stats.scam);
             return (
               <TouchableOpacity 
                 key={type}
@@ -82,7 +130,7 @@ export default function HistoryScreen() {
                 style={[styles.whiteChip, filter === type && styles.activeWhiteChip]}
               >
                 <Text style={[styles.whiteChipText, filter === type && styles.activeWhiteChipText]}>
-                  {label} ({type === 'All' ? stats.total : (type === 'Safe' ? stats.safe : stats.scam)})
+                  {label} ({count})
                 </Text>
               </TouchableOpacity>
             );
@@ -94,7 +142,6 @@ export default function HistoryScreen() {
           keyExtractor={(item: any) => item.id}
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
-          // Translated empty state message
           ListEmptyComponent={<Text style={styles.emptyText}>{t.all} {t.historyTitle} (0)</Text>}
           renderItem={({ item }: any) => (
             <TouchableOpacity 
@@ -117,7 +164,7 @@ export default function HistoryScreen() {
                 
                 <View style={[styles.miniBadge, { backgroundColor: item.status === 'safe' ? '#E8F5E9' : '#FFEBEE' }]}>
                    <Text style={[styles.miniBadgeText, { color: item.status === 'safe' ? '#34C759' : '#FF3B30' }]}>
-                      {item.status === 'safe' ? t.safe.toUpperCase() : t.scam.toUpperCase()}
+                      {item.status === 'safe' ? t.safe.toUpperCase() : (item.status === 'warning' ? "WARNING" : t.scam.toUpperCase())}
                    </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={14} color="#C7C7CC" style={{marginLeft: 8}} />
@@ -127,16 +174,15 @@ export default function HistoryScreen() {
         />
       </View>
 
-      {/* Modal section connected to translations */}
+      {/* Detail Modal connected to full language context */}
       <Modal animationType="slide" transparent={true} visible={selectedItem !== null} onRequestClose={() => setSelectedItem(null)}>
         <View style={styles.modalOverlay}>
           {selectedItem && (
             <View style={styles.modalContent}>
-               <View style={[styles.modalHeader, { backgroundColor: selectedItem.status === 'safe' ? '#34C759' : '#FF3B30' }]}>
+               <View style={[styles.modalHeader, { backgroundColor: selectedItem.status === 'safe' ? '#34C759' : (selectedItem.status === 'warning' ? '#FF9500' : '#FF3B30') }]}>
                  <Ionicons name={selectedItem.status === 'safe' ? "checkmark-circle" : "alert-circle"} size={60} color="white" />
-                 {/* Translated Modal Header Status */}
                  <Text style={styles.modalStatusText}>
-                    {selectedItem.status === 'safe' ? "OFFICIAL VERIFIED" : "SCAM DETECTED"}
+                    {selectedItem.status === 'safe' ? "OFFICIAL VERIFIED" : (selectedItem.status === 'warning' ? "POTENTIAL RISK" : "SCAM DETECTED")}
                  </Text>
                </View>
                <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
@@ -159,7 +205,6 @@ export default function HistoryScreen() {
                    </>
                  )}
                </ScrollView>
-               {/* Translated Close Button */}
                <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedItem(null)}>
                   <Text style={styles.closeBtnText}>{t.back}</Text>
                </TouchableOpacity>
@@ -174,8 +219,10 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   headerArea: { backgroundColor: '#0A1220', paddingHorizontal: 25, paddingTop: 60, paddingBottom: 40, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
+  headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: 28, fontWeight: 'bold', color: 'white' },
   headerSubtitle: { color: '#8E8E93', fontSize: 13, marginTop: 8, lineHeight: 18 },
+  trashBtn: { padding: 8, backgroundColor: 'rgba(255, 59, 48, 0.1)', borderRadius: 10 },
   contentBody: { flex: 1, paddingHorizontal: 20 },
   filterRow: { flexDirection: 'row', gap: 10, marginTop: 25, marginBottom: 15 },
   whiteChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F2F2F7', borderWidth: 1, borderColor: '#E5E5EA' },
