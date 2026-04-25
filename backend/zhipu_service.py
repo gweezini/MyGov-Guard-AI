@@ -94,16 +94,16 @@ Text:
         
         # Multi-language Safety Net for connection errors
         error_msg = {
-            "zh": "⚠️ 网络超时: AI 服务器忙。请尝试更清晰的截图。",
-            "ms": "⚠️ Talian tamat: Pelayan AI sibuk. Sila cuba tangkapan skrin yang lebih jelas.",
-            "en": "⚠️ Network Timeout: AI server is busy. Try a clearer screenshot."
+            "zh": "⚠️ 严重错误: 系统暂时离线。如果您怀疑遇到诈骗，请立即拨打 NSRC 997 热线。",
+            "ms": "⚠️ Ralat Sistem: Sistem di luar talian. Jika anda mengesyaki penipuan, hubungi hotline NSRC 997 segera.",
+            "en": "⚠️ System Error: System offline. If you suspect a scam, please call the NSRC 997 hotline immediately."
         }
         current_err = error_msg.get(language, error_msg["en"])
         
         return {
             "status": "error", 
             "summary": current_err,
-            "steps": ["Try a shorter screenshot instead of a full PDF.", "Check your phone hotspot connection."],
+            "steps": ["Please call the NSRC 997 hotline to verify any suspicious documents.", "Check your internet connection and try again."],
             "official_links": []
         }
 
