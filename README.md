@@ -38,10 +38,11 @@ Our application simplifies the verification process through a streamlined three-
 ---
 
 ## 👥 Target Audience
-We have specifically designed this platform to cater to two primary segments:
+MyGov-Guard AI is designed as a universal tool with a specific focus on those most in need:
 
-* **The Most Vulnerable:** Elderly citizens and B40 communities who are frequently targeted by high-pressure scam tactics and may struggle with complex official terminology.
-* **The Mass Market:** Busy professionals and youth who require a universal "Digital Shield" to quickly verify administrative notices and government communications.
+* **General Malaysian Citizens:** A universal "Digital Shield" for everyone.
+* **Primary Focus:** Elderly and B40 communities facing the highest risk of financial loss.
+* **The Mass Market:** Busy professionals & youth needing instant verification for complex official jargon.
 
 ---
 
