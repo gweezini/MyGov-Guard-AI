@@ -1,49 +1,86 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
+// Import LanguageContext from layout for multi-language support
+import { LanguageContext } from './_layout'; 
 
+/**
+ * Profile Screen Component
+ * Connected to LanguageContext and fixed for Cross-Platform (iOS/Android/Web).
+ */
 export default function ProfileScreen() {
-  const [userName, setUserName] = useState('User'); // default as User
+  // Pull translation object 't' and language controls from Context
+  const { lang, changeLanguage, t } = useContext(LanguageContext);
+  
+  const [userName, setUserName] = useState('User'); 
   const isFocused = useIsFocused();
 
+  // Load user data whenever the screen comes into focus
   useEffect(() => {
     if (isFocused) {
       loadUserData();
     }
   }, [isFocused]);
 
+  // Retrieve saved user name from local storage
   const loadUserData = async () => {
     const savedName = await AsyncStorage.getItem('user_name');
     if (savedName) setUserName(savedName);
   };
 
+  /**
+   * Handle Profile Name Update
+   * FIXED: Added logic to prevent crashes on Web/Android where Alert.prompt is missing.
+   */
   const handleEditName = () => {
-    Alert.prompt(
-      "Update Profile",
-      "Please enter your name:",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Save", 
-          onPress: async (newName?: string) => {
-            if (newName && newName.trim() !== "") {
-              await AsyncStorage.setItem('user_name', newName);
-              setUserName(newName);
-              Alert.alert("Success", "Profile name updated!");
+    // 1. Check if the device is iOS (Alert.prompt works here)
+    if (Platform.OS === 'ios') {
+      Alert.prompt(
+        t.editProfile,
+        t.editHint,
+        [
+          { text: "Cancel", style: "cancel" },
+          { 
+            text: "Save", 
+            onPress: async (newName?: string) => {
+              if (newName && newName.trim() !== "") {
+                saveNameToStorage(newName);
+              }
             }
           }
-        }
-      ],
-      "plain-text",
-      userName
-    );
+        ],
+        "plain-text",
+        userName
+      );
+    } 
+    // 2. For Web or Android (Alert.prompt is NOT a function here)
+    else {
+      const newName = window.prompt(t.editHint, userName);
+      if (newName !== null && newName.trim() !== "") {
+        saveNameToStorage(newName);
+      }
+    }
+  };
+
+  // Helper function to save name and update UI
+  const saveNameToStorage = async (name: string) => {
+    try {
+      await AsyncStorage.setItem('user_name', name);
+      setUserName(name);
+      // Small feedback for the user
+      if (Platform.OS !== 'web') {
+        Alert.alert("Success", "Profile name updated!");
+      }
+    } catch (err) {
+      console.error("Failed to save name", err);
+    }
   };
 
   return (
     <ScrollView style={styles.container}>
-        
+      {/* Profile Header with Navy Blue Background */}
       <View style={styles.headerCard}>
         <View style={styles.avatarContainer}>
           <Ionicons name="person-circle" size={80} color="white" />
@@ -51,42 +88,79 @@ export default function ProfileScreen() {
         
         <TouchableOpacity style={{ alignItems: 'center' }} onPress={handleEditName}>
           <Text style={styles.userName}>{userName}</Text>
-          <Text style={styles.editHint}>Tap to edit profile name ✏️</Text>
+          <Text style={styles.editHint}>{t.editHint} ✏️</Text>
         </TouchableOpacity>
 
-        <Text style={styles.userRole}>UTM Computing Student • Verified</Text>
+        <Text style={styles.userRole}>{t.verified}</Text>
         
+        {/* Shield Pro Badge */}
         <View style={styles.shieldBadge}>
           <Ionicons name="shield-checkmark" size={16} color="#34C759" />
           <Text style={styles.shieldText}>Shield Pro - Active</Text>
         </View>
       </View>
 
+      {/* Account Settings Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>ACCOUNT</Text>
+        <Text style={styles.sectionTitle}>{t.account}</Text>
         <View style={styles.menuCard}>
-          <MenuItem icon="person-outline" title="Edit Profile" onPress={handleEditName} />
-          <MenuItem icon="notifications-outline" title="Notification settings" />
-          <MenuItem icon="language-outline" title="Language" extra="English (US)" />
+          <MenuItem 
+            icon="person-outline" 
+            title={t.editProfile} 
+            onPress={handleEditName} 
+          />
+          <MenuItem icon="notifications-outline" title={t.notifications} />
+          
+          {/* Multi-language selection row */}
+          <View style={styles.languageContainer}>
+            <View style={styles.menuLeft}>
+              <Ionicons name="language-outline" size={22} color="#48484A" />
+              <Text style={styles.menuTitle}>{t.lang}</Text>
+            </View>
+            <View style={styles.langButtonGroup}>
+              {['en', 'ms', 'zh'].map((code) => (
+                <TouchableOpacity 
+                  key={code}
+                  onPress={() => changeLanguage(code)}
+                  style={[
+                    styles.langOption, 
+                    lang === code && styles.activeLangOption
+                  ]}
+                >
+                  <Text style={[
+                    styles.langOptionText, 
+                    lang === code && styles.activeLangText
+                  ]}>
+                    {code === 'en' ? 'EN' : code === 'ms' ? 'MS' : '中文'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
         </View>
       </View>
 
+      {/* Support Section using translations */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>SUPPORT</Text>
+        <Text style={styles.sectionTitle}>{t.support}</Text>
         <View style={styles.menuCard}>
-          <MenuItem icon="help-circle-outline" title="Help centre" />
-          <MenuItem icon="bug-outline" title="Report a bug" />
-          <MenuItem icon="information-circle-outline" title="About" extra="v1.0" />
+          <MenuItem icon="help-circle-outline" title={t.help} />
+          <MenuItem icon="bug-outline" title={t.bug} />
+          <MenuItem icon="information-circle-outline" title={t.about} extra="v1.0" />
         </View>
       </View>
 
+      {/* Logout button row */}
       <TouchableOpacity style={styles.logoutBtn}>
-        <Text style={styles.logoutText}>Log out</Text>
+        <Text style={styles.logoutText}>{t.logout}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
+/**
+ * MenuItem Component for clean code structure
+ */
 const MenuItem = ({ icon, title, extra, onPress }: any) => (
   <TouchableOpacity style={styles.menuItem} onPress={onPress}>
     <View style={styles.menuLeft}>
@@ -118,5 +192,11 @@ const styles = StyleSheet.create({
   menuRight: { flexDirection: 'row', alignItems: 'center' },
   extraText: { color: '#8E8E93', fontSize: 14, marginRight: 5 },
   logoutBtn: { margin: 25, backgroundColor: 'white', padding: 16, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#FF3B30' },
-  logoutText: { color: '#FF3B30', fontSize: 16, fontWeight: '600' }
+  logoutText: { color: '#FF3B30', fontSize: 16, fontWeight: '600' },
+  languageContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 15 },
+  langButtonGroup: { flexDirection: 'row', backgroundColor: '#F2F2F7', borderRadius: 8, padding: 2 },
+  langOption: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
+  activeLangOption: { backgroundColor: '#0A1220' },
+  langOptionText: { fontSize: 12, fontWeight: 'bold', color: '#8E8E93' },
+  activeLangText: { color: 'white' }
 });

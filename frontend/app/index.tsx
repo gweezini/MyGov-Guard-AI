@@ -1,19 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
+import { LanguageContext } from './_layout'; 
 
 /**
  * The Dashboard (Home) Screen.
- * Displays user welcome message and real-time AI security insights
- * by pulling data from the local AsyncStorage "database".
+ * Fully integrated with LanguageContext and real-time scan stats.
  */
 export default function HomeScreen() {
+  const { t } = useContext(LanguageContext);
+  
   const [stats, setStats] = useState({ total: 0, scams: 0 });
-  const [userName, setUserName] = useState('User'); // Default name
-  const isFocused = useIsFocused(); // Automatically refreshes data when user navigates back to this tab
+  const [userName, setUserName] = useState('User'); 
+  const isFocused = useIsFocused(); 
 
+  // Refresh data whenever user navigates back to Home tab
   useEffect(() => {
     if (isFocused) {
       loadDashboardData();
@@ -22,7 +25,7 @@ export default function HomeScreen() {
 
   const loadDashboardData = async () => {
     try {
-      // Fetch scan history from local storage
+      // 1. Fetch live scan history stats
       const historyData = await AsyncStorage.getItem('user_history');
       if (historyData) {
         const history = JSON.parse(historyData);
@@ -32,7 +35,7 @@ export default function HomeScreen() {
         });
       }
 
-      // Fetch personalized name if set in Profile
+      // 2. Fetch user name from Profile settings
       const savedName = await AsyncStorage.getItem('user_name');
       if (savedName) setUserName(savedName);
     } catch (error) {
@@ -54,48 +57,52 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.welcomeText}>Welcome,</Text>
+  
+        <Text style={styles.welcomeText}>{t.welcome}</Text>
         <Text style={styles.userName}>{userName} 👋</Text>
 
         <View style={styles.activeShield}>
           <View style={styles.pulseDot} />
-          <Text style={styles.shieldStatus}>Shield active — no threats detected</Text>
+  
+          <Text style={styles.shieldStatus}>{t.shieldActive}</Text>
         </View>
       </View>
 
       <View style={styles.content}>
-        {/* AI Insight Card - This is the "Hero" component of your UI */}
+        {/* AI Insight Card */}
         <View style={styles.insightCard}>
           <Text style={styles.insightLabel}>⚡ AI INSIGHT — LIVE UPDATES</Text>
-          <Text style={styles.insightTitle}>Security Performance</Text>
-          <Text style={styles.insightDesc}>
-            AI has analyzed your local documents. Here is your current protection status.
-          </Text>
+  
+          <Text style={styles.insightTitle}>{t.secPerformance}</Text>
+  
+          <Text style={styles.insightDesc}>{t.aiInsight}</Text>
 
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{stats.total}</Text>
-              <Text style={styles.statLabel}>Scanned</Text>
+              {/* 🌟 使用翻译：Scanned */}
+              <Text style={styles.statLabel}>{t.scanned}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: '#FF3B30' }]}>{stats.scams}</Text>
-              <Text style={styles.statLabel}>Blocked</Text>
+              {/* 🌟 使用翻译：Blocked */}
+              <Text style={styles.statLabel}>{t.blocked}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.statItem}>
               <Text style={styles.statValue}>98%</Text>
-              <Text style={styles.statLabel}>Accuracy</Text>
+              {/* 🌟 使用翻译：Accuracy */}
+              <Text style={styles.statLabel}>{t.accuracy}</Text>
             </View>
           </View>
         </View>
 
-        <Text style={styles.sectionHeader}>Quick Guide</Text>
+
+        <Text style={styles.sectionHeader}>{t.quickGuide}</Text>
         <View style={styles.guideCard}>
           <Ionicons name="information-circle" size={24} color="#007AFF" />
-          <Text style={styles.guideText}>
-            Navigate to the <Text style={{fontWeight: 'bold'}}>Scan</Text> tab to verify official letters or notices instantly.
-          </Text>
+          <Text style={styles.guideText}>{t.guideDesc}</Text>
         </View>
       </View>
     </ScrollView>
