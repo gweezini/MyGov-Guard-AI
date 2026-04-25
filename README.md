@@ -8,7 +8,7 @@
 ## 📺 Pitching Video
 **Watch our project demonstration here:** [▶️ Click to Watch MyGov-Guard AI Pitch Video](在这里替换成你的视频链接)
 
-**Pitch Deck:** [📊 View Presentation Slides](在这里替换成你的PitchDeck链接)
+**Pitch Deck:** [📊 View Presentation Slides](https://github.com/gweezini/MyGov-Guard-AI/blob/main/Gimme4_MyGov-Guard-AI_pitchdeck.pdf)
 
 ## 📂 Project Documentation
 Access the comprehensive technical and product documentation for MyGov-Guard AI:
