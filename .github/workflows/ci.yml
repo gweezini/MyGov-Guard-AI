@@ -33,5 +33,5 @@ jobs:
         # Perform basic syntax checks to ensure critical files are valid
         python -m py_compile main.py
         python -m py_compile ocr_service.py
-        python -m py_compile zhipu_service.py
+        python -m py_compile gemini_service.py
         echo "Syntax check passed! Ready for production deployment."
