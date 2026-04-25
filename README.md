@@ -8,6 +8,14 @@
 ## 📺 Pitching Video
 **Watch our project demonstration here:** [▶️ Click to Watch MyGov-Guard AI Pitch Video](在这里替换成你的视频链接)
 
+**Pitch Deck:** [📊 View Presentation Slides](在这里替换成你的PitchDeck链接)
+
+## 📂 Project Documentation
+Access the comprehensive technical and product documentation for MyGov-Guard AI:
+* **Product Requirement Document (PRD):** [📄 View PRD]([./Product%20Requirement%20Documentation_Gimme4.pdf](https://github.com/gweezini/MyGov-Guard-AI/blob/main/Product%20Requirement%20Documentation_Gimme4.pdf))
+* **System Analysis Documentation (SAD):** [📄 View SAD]([./System%20Analysis%20Documentation_Gimme4.pdf](https://github.com/gweezini/MyGov-Guard-AI/blob/main/System%20Analysis%20Documentation_Gimme4.pdf))
+* **Quality Assurance Testing Documentation (QATD):** [📄 View QATD](https://github.com/gweezini/MyGov-Guard-AI/blob/main/Sample%20Testing%20Analysis%20Documentation%20(Preliminary)_Gimme4.pdf)
+
 ---
 
 ## 📌 Project Overview
@@ -30,12 +38,19 @@ Our application simplifies the verification process through a streamlined three-
 ---
 
 ## 👥 Target Audience
-We have specifically designed this platform to cater to the needs of those most at risk:
+We have specifically designed this platform to cater to two primary segments:
 
-* **Elderly Citizens:** Seniors who may struggle with complex digital interfaces and are frequently targeted by high-pressure scam tactics.
-* **B40 Communities:** Lower-income groups who require accessible, free-to-use tools to protect their hard-earned savings.
-* **Non-Tech Savvy Users:** Individuals who find legal and government terminology intimidating and need simplified, direct explanations.
-* **SME Owners:** Small business owners who receive numerous official notices and need to quickly distinguish between legitimate tax documents and fraudulent invoices.
+* **The Most Vulnerable:** Elderly citizens and B40 communities who are frequently targeted by high-pressure scam tactics and may struggle with complex official terminology.
+* **The Mass Market:** Busy professionals and youth who require a universal "Digital Shield" to quickly verify administrative notices and government communications.
+
+---
+
+## 🌏 Real-World Impact
+MyGov-Guard AI is built to deliver tangible benefits to Malaysian society:
+
+* **Financial Security:** Directly protecting life savings and retirement funds from being drained by fraudulent schemes.
+* **Digital Confidence:** Replacing the fear and anxiety associated with complex official jargon with clarity and understanding.
+* **Closing the Gap:** Ensuring no Malaysian is left behind in the national transition to **e-Kerajaan** (Digital Government).
 
 ---
 
