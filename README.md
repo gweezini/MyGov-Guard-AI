@@ -31,7 +31,7 @@ The current digital landscape is plagued by three critical issues that leave cit
 
 ## ✨ The Solution: MyGov-Guard AI
 Our application simplifies the verification process through a streamlined three-step user journey:
-1. **📸 Snap & Upload:** Users can capture photos of physical letters, upload screenshots of messages, or attach multi-page PDFs.
+1. **📸 Snap & Upload:** Users can capture photos of physical letters, upload screenshots of emails, or attach multi-page PDFs.
 2. **🧠 Smart Analysis:** The AI processes unstructured data to identify red flags and translates content into plain language (English, Malay, or Chinese).
 3. **🛡️ Actionable Protection:** The system generates verified next steps and direct contact links for official services, such as the **NSRC 997** hotline.
 
