@@ -9,8 +9,8 @@ export default function ProfileScreen() {
   const { lang, changeLanguage, t } = useContext(LanguageContext);
   
   const [userName, setUserName] = useState('User'); 
-  const [isEditing, setIsEditing] = useState(false); // New state for editing mode
-  const [tempName, setTempName] = useState(''); // To hold text while typing
+  const [isEditing, setIsEditing] = useState(false); // State to toggle editing mode
+  const [tempName, setTempName] = useState(''); // Temporary state for typing
   const isFocused = useIsFocused();
 
   useEffect(() => {
@@ -27,18 +27,19 @@ export default function ProfileScreen() {
     }
   };
 
-  // 🌟 Logic changed: On Android, we toggle an input field instead of a popup
+  /**
+   * Universal Name Editing
+   * iOS: Keep the native prompt (optional)
+   * Android/Web: Inline editing for better compatibility
+   */
   const handleEditName = () => {
     if (Platform.OS === 'ios') {
-      // Keep iOS clean with the native prompt
       Alert.prompt(
         t.editProfile,
         t.editHint,
         [
           { text: "Cancel", style: "cancel" },
-          { 
-            text: "Save", 
-            onPress: (newName?: string) => {
+          { text: "Save", onPress: (newName?: string) => {
               if (newName && newName.trim() !== "") saveNameToStorage(newName);
             }
           }
@@ -47,17 +48,21 @@ export default function ProfileScreen() {
         userName
       );
     } else {
-      // For Android and Web: Enter inline editing mode
+      // 🌟 Trigger inline input for Android & Web
       setTempName(userName);
       setIsEditing(true);
     }
   };
 
   const saveNameToStorage = async (name: string) => {
+    if (!name || name.trim() === "") {
+      setIsEditing(false);
+      return;
+    }
     try {
       await AsyncStorage.setItem('user_name', name);
       setUserName(name);
-      setIsEditing(false); // Close input field
+      setIsEditing(false); // Exit editing mode
       if (Platform.OS !== 'web') {
         Alert.alert("Success", "Profile name updated!");
       }
@@ -73,23 +78,23 @@ export default function ProfileScreen() {
           <Ionicons name="person-circle" size={80} color="white" />
         </View>
         
+        {/* 🌟 Conditional Rendering for Android/Web Input */}
         <View style={{ alignItems: 'center', width: '100%' }}>
           {isEditing ? (
-            // 🌟 Android & Web friendly Input Box
-            <View style={styles.editContainer}>
+            <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.nameInput}
                 value={tempName}
                 onChangeText={setTempName}
-                autoFocus
+                autoFocus={true}
                 returnKeyType="done"
                 onSubmitEditing={() => saveNameToStorage(tempName)}
               />
-              <TouchableOpacity onPress={() => saveNameToStorage(tempName)}>
-                <Ionicons name="checkmark-circle" size={30} color="#34C759" />
+              <TouchableOpacity onPress={() => saveNameToStorage(tempName)} style={styles.saveBtn}>
+                <Ionicons name="checkmark-circle" size={32} color="#34C759" />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setIsEditing(false)}>
-                <Ionicons name="close-circle" size={30} color="#FF3B30" />
+                <Ionicons name="close-circle" size={32} color="#FF3B30" />
               </TouchableOpacity>
             </View>
           ) : (
@@ -107,6 +112,7 @@ export default function ProfileScreen() {
         </View>
       </View>
 
+      {/* Language Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.account}</Text>
         <View style={styles.menuCard}>
@@ -115,8 +121,6 @@ export default function ProfileScreen() {
             title={t.editProfile} 
             onPress={handleEditName} 
           />
-          <MenuItem icon="notifications-outline" title={t.notifications} />
-          
           <View style={styles.languageContainer}>
             <View style={styles.menuLeft}>
               <Ionicons name="language-outline" size={22} color="#48484A" />
@@ -174,10 +178,12 @@ const styles = StyleSheet.create({
   avatarContainer: { marginBottom: 10 },
   userName: { color: 'white', fontSize: 26, fontWeight: 'bold' },
   editHint: { color: '#007AFF', fontSize: 12, marginTop: 4, fontWeight: '600' },
-  // 🌟 New Styles for Inline Editing
-  editContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, paddingHorizontal: 10, marginHorizontal: 20 },
-  nameInput: { color: 'white', fontSize: 22, fontWeight: 'bold', minWidth: 150, paddingVertical: 10, textAlign: 'center' },
   
+  //  New Styles for Inline Editing
+  inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 15, paddingHorizontal: 15, marginTop: 5 },
+  nameInput: { color: 'white', fontSize: 22, fontWeight: 'bold', minWidth: 150, paddingVertical: 10, textAlign: 'center' },
+  saveBtn: { marginHorizontal: 10 },
+
   userRole: { color: '#8E8E93', fontSize: 14, marginTop: 10 },
   shieldBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(52, 199, 89, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginTop: 15, borderWidth: 1, borderColor: '#34C759' },
   shieldText: { color: '#34C759', fontSize: 12, fontWeight: '600', marginLeft: 5 },
