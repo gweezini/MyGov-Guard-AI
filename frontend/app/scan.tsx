@@ -168,7 +168,10 @@ export default function ScanScreen() {
     try {
       // 1. If no sound exists, load it from the backend
       if (!sound) {
-        const apiUrl = 'http://10.198.102.17:8000';
+        const hostUri = Constants.expoConfig?.hostUri;
+        const hostIp = hostUri?.split(':')[0];
+        const apiUrl = hostIp ? `http://${hostIp}:8000` : 'http://localhost:8000';
+        
         const ttsUrl = `${apiUrl}/tts?text=${encodeURIComponent(result.summary)}&language=${lang}`;
         
         setIsBuffering(true);
