@@ -191,13 +191,13 @@ export default function ScanScreen() {
               { backgroundColor: result.error ? '#4A4A4A' : (result.status === 'safe' ? '#34C759' : (result.status === 'warning' ? '#FF9500' : '#FF3B30')) }
             ]}>
                <Ionicons 
-                  name={result.error ? "search-outline" : (result.status === 'safe' ? "checkmark-circle" : "alert-circle")} 
+                  name={result.error ? "search-outline" : (result.status === 'error' ? "alert-circle-outline" : (result.status === 'safe' ? "checkmark-circle" : "alert-circle"))} 
                   size={50} color="white" 
                />
                <Text style={styles.reportStatusText}>
                  {result.error 
                     ? (result.summary.includes("text") || result.summary.includes("文字") ? "SCAN FAILED" : "SYSTEM ERROR") 
-                    : (result.status === 'safe' ? "OFFICIAL VERIFIED" : (result.status === 'warning' ? "POTENTIAL RISK" : "SCAM DETECTED"))}
+                    : (result.status === 'error' ? "NO TEXT DETECTED" : (result.status === 'safe' ? "OFFICIAL VERIFIED" : (result.status === 'warning' ? "POTENTIAL RISK" : "SCAM DETECTED")))}
                </Text>
             </View>
 

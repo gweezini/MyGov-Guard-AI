@@ -13,6 +13,38 @@ async def process_document_workflow(ocr_text: str, language: str = "en") -> dict
     Handles scams, jargon simplification, and next steps.
     Strictly localized to output in the user's selected language.
     """
+    
+    # ===== Input Validation: Check for empty or irrelevant content =====
+    cleaned_text = ocr_text.strip()
+    
+    # If no text extracted (e.g., user uploaded a photo of food, landscape, etc.)
+    if not cleaned_text or len(cleaned_text) < 10:
+        error_messages = {
+            "zh": "无法识别文字。请上传包含文字的文件，如政府信函、账单或通知。",
+            "ms": "Teks tidak dapat dikenal pasti. Sila muat naik fail yang mengandungi teks seperti surat rasmi, bil atau notis.",
+            "en": "No text detected. Please upload a document containing text such as government letters, bills, or notices."
+        }
+        return {
+            "status": "error",
+            "summary": error_messages.get(language, error_messages["en"]),
+            "steps": [],
+            "official_links": []
+        }
+    
+    # If text is too short (< 50 chars) but exists, warn user
+    if len(cleaned_text) < 50:
+        warning_messages = {
+            "zh": "检测到文字过少，可能无法准确分析。请确保上传清晰的文档图片。",
+            "ms": "Teks yang dikesan terlalu sedikit untuk analisis yang tepat. Sila pastikan gambar dokumen yang jelas.",
+            "en": "Very little text detected. For accurate analysis, please upload a clear document image."
+        }
+        return {
+            "status": "warning",
+            "summary": warning_messages.get(language, warning_messages["en"]),
+            "steps": [],
+            "official_links": []
+        }
+
     # 1. Setup Authentication for Vertex AI using your JSON key
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "gcp-key.json"
     
