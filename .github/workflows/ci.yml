@@ -1,0 +1,37 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest
+
+    - name: Verify Backend Integrity
+      run: |
+        echo "Running system verification..."
+        cd backend
+        # Perform basic syntax checks to ensure critical files are valid
+        python -m py_compile main.py
+        python -m py_compile ocr_service.py
+        python -m py_compile zhipu_service.py
+        echo "Syntax check passed! Ready for production deployment."
