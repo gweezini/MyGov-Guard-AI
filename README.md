@@ -6,7 +6,7 @@
 [![AI Core: Gemini_2.5_Flash](https://img.shields.io/badge/AI-Gemini_2.5_Flash-4285F4?logo=google-gemini)](https://deepmind.google/technologies/gemini/)
 
 ## 📺 Pitching Video
-**Watch our project demonstration here:** [▶️ Click to Watch MyGov-Guard AI Pitch Video](https://youtu.be/Wcb3uXed8Sc)
+**Watch our project demonstration here:** [▶️ Click to Watch MyGov-Guard AI Pitch Video](https://youtu.be/rJzhhweOTl4)
 
 **Pitch Deck:** [📊 View Presentation Slides](https://github.com/gweezini/MyGov-Guard-AI/blob/main/Gimme4_MyGov-Guard-AI_pitchdeck.pdf)
 
