@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Modal, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,8 +7,8 @@ import { LanguageContext } from './_layout';
 
 /**
  * History Screen Component
- * - Fixed: 'Warning' grouped under 'Scam' for consistent statistics.
- * - Added: Clear All History function with a red trash icon.
+ * Fixed: Stretching bug on active filter selection.
+ * Colors: Safe (Green), Warning (Yellow/Orange), Scam (Red).
  */
 export default function HistoryScreen() {
   const { t, lang } = useContext(LanguageContext);
@@ -19,15 +19,15 @@ export default function HistoryScreen() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const isFocused = useIsFocused();
 
-  /**
-   * 🌟 Stats Logic: Syncs 'Scam' and 'Warning' together
-   */
+  // Statistics calculation for the header chips
   const stats = {
     total: fullHistory.length,
     safe: fullHistory.filter((item: any) => item.status === 'safe').length,
-    scam: fullHistory.filter((item: any) => item.status === 'scam' || item.status === 'warning').length,
+    warning: fullHistory.filter((item: any) => item.status === 'warning').length,
+    scam: fullHistory.filter((item: any) => item.status === 'scam').length,
   };
 
+  // Helper to format the record dates
   const formatDisplayDate = (dateString: string) => {
     try {
       const recordDate = new Date(dateString);
@@ -37,9 +37,7 @@ export default function HistoryScreen() {
     } catch (e) { return dateString; }
   };
 
-  /**
-   * Load Data from Local Storage
-   */
+  // Load history from AsyncStorage
   const getHistory = async () => {
     try {
       const data = await AsyncStorage.getItem('user_history');
@@ -58,26 +56,17 @@ export default function HistoryScreen() {
     if (isFocused) getHistory();
   }, [isFocused]);
 
-  /**
-   * 🌟 Filtering Logic: Includes 'Warning' under the 'Scam' tab
-   */
+  // Handle filtering logic based on status
   useEffect(() => {
     if (filter === 'All') {
       setDisplayHistory(fullHistory);
-    } else if (filter === 'Scam') {
-      const filtered = fullHistory.filter((item: any) => 
-        item.status === 'scam' || item.status === 'warning'
-      );
-      setDisplayHistory(filtered);
     } else {
       const filtered = fullHistory.filter((item: any) => item.status === filter.toLowerCase());
       setDisplayHistory(filtered);
     }
   }, [filter, fullHistory]);
 
-  /**
-   * Clear All History with Confirmation Alert
-   */
+  // Clear all history with confirmation
   const handleClearHistory = () => {
     Alert.alert(
       t.historyTitle, 
@@ -101,7 +90,6 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header Area with Trash Icon */}
       <View style={styles.headerArea}>
         <View style={styles.headerTopRow}>
           <View>
@@ -109,7 +97,6 @@ export default function HistoryScreen() {
             <Text style={styles.headerSubtitle}>{t.historySub}</Text>
           </View>
           
-          {/* Only show trash icon if there's history to delete */}
           {fullHistory.length > 0 && (
             <TouchableOpacity onPress={handleClearHistory} style={styles.trashBtn}>
               <Ionicons name="trash-outline" size={24} color="#FF3B30" />
@@ -119,23 +106,35 @@ export default function HistoryScreen() {
       </View>
 
       <View style={styles.contentBody}>
-        {/* Filter Chips */}
-        <View style={styles.filterRow}>
-          {['All', 'Safe', 'Scam'].map((type) => {
-            const label = type === 'All' ? t.all : (type === 'Safe' ? t.safe : t.scam);
-            const count = type === 'All' ? stats.total : (type === 'Safe' ? stats.safe : stats.scam);
-            return (
-              <TouchableOpacity 
-                key={type}
-                onPress={() => setFilter(type)}
-                style={[styles.whiteChip, filter === type && styles.activeWhiteChip]}
-              >
-                <Text style={[styles.whiteChipText, filter === type && styles.activeWhiteChipText]}>
-                  {label} ({count})
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+        {/* Fixed: ScrollView for Filter Chips with fixed height and alignment */}
+        <View style={styles.filterContainer}>
+            <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                contentContainerStyle={styles.filterRow}
+            >
+            {['All', 'Safe', 'Warning', 'Scam'].map((type) => {
+                const label = type === 'All' ? t.all : 
+                            (type === 'Safe' ? t.safe : 
+                            (type === 'Warning' ? (lang === 'zh' ? "警告" : (lang === 'ms' ? "Amaran" : "Warning")) : t.scam));
+                
+                const count = type === 'All' ? stats.total : 
+                            (type === 'Safe' ? stats.safe : 
+                            (type === 'Warning' ? stats.warning : stats.scam));
+
+                return (
+                <TouchableOpacity 
+                    key={type}
+                    onPress={() => setFilter(type)}
+                    style={[styles.whiteChip, filter === type && styles.activeWhiteChip]}
+                >
+                    <Text style={[styles.whiteChipText, filter === type && styles.activeWhiteChipText]}>
+                    {label} ({count})
+                    </Text>
+                </TouchableOpacity>
+                );
+            })}
+            </ScrollView>
         </View>
 
         <FlatList
@@ -151,11 +150,14 @@ export default function HistoryScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.cardTop}>
-                <View style={[styles.iconCircle, { backgroundColor: item.status === 'safe' ? '#E8F5E9' : '#FFEBEE' }]}>
+                <View style={[
+                  styles.iconCircle, 
+                  { backgroundColor: item.status === 'safe' ? '#E8F5E9' : (item.status === 'warning' ? '#FFF9E6' : '#FFEBEE') }
+                ]}>
                   <Ionicons 
-                    name={item.status === 'safe' ? "shield-checkmark" : "warning"} 
+                    name={item.status === 'safe' ? "shield-checkmark" : (item.status === 'warning' ? "alert-circle" : "warning")} 
                     size={18} 
-                    color={item.status === 'safe' ? "#34C759" : "#FF3B30"} 
+                    color={item.status === 'safe' ? "#34C759" : (item.status === 'warning' ? "#FF9500" : "#FF3B30")} 
                   />
                 </View>
                 <View style={styles.titleArea}>
@@ -163,9 +165,16 @@ export default function HistoryScreen() {
                   <Text style={styles.cardDate}>{formatDisplayDate(item.date)}</Text>
                 </View>
                 
-                <View style={[styles.miniBadge, { backgroundColor: item.status === 'safe' ? '#E8F5E9' : '#FFEBEE' }]}>
-                   <Text style={[styles.miniBadgeText, { color: item.status === 'safe' ? '#34C759' : '#FF3B30' }]}>
-                      {item.status === 'safe' ? t.safe.toUpperCase() : (item.status === 'warning' ? "WARNING" : t.scam.toUpperCase())}
+                <View style={[
+                  styles.miniBadge, 
+                  { backgroundColor: item.status === 'safe' ? '#E8F5E9' : (item.status === 'warning' ? '#FFF9E6' : '#FFEBEE') }
+                ]}>
+                   <Text style={[
+                     styles.miniBadgeText, 
+                     { color: item.status === 'safe' ? '#34C759' : (item.status === 'warning' ? '#FF9500' : '#FF3B30') }
+                   ]}>
+                      {item.status === 'safe' ? t.safe.toUpperCase() : 
+                       (item.status === 'warning' ? (lang === 'zh' ? "警告" : "WARNING") : t.scam.toUpperCase())}
                    </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={14} color="#C7C7CC" style={{marginLeft: 8}} />
@@ -175,15 +184,18 @@ export default function HistoryScreen() {
         />
       </View>
 
-      {/* Detail Modal connected to full language context */}
       <Modal animationType="slide" transparent={true} visible={selectedItem !== null} onRequestClose={() => setSelectedItem(null)}>
         <View style={styles.modalOverlay}>
           {selectedItem && (
             <View style={styles.modalContent}>
-               <View style={[styles.modalHeader, { backgroundColor: selectedItem.status === 'safe' ? '#34C759' : (selectedItem.status === 'warning' ? '#FF9500' : '#FF3B30') }]}>
+               <View style={[
+                 styles.modalHeader, 
+                 { backgroundColor: selectedItem.status === 'safe' ? '#34C759' : (selectedItem.status === 'warning' ? '#FF9500' : '#FF3B30') }
+               ]}>
                  <Ionicons name={selectedItem.status === 'safe' ? "checkmark-circle" : "alert-circle"} size={60} color="white" />
                  <Text style={styles.modalStatusText}>
-                    {selectedItem.status === 'safe' ? "OFFICIAL VERIFIED" : (selectedItem.status === 'warning' ? "POTENTIAL RISK" : "SCAM DETECTED")}
+                    {selectedItem.status === 'safe' ? "OFFICIAL VERIFIED" : 
+                     (selectedItem.status === 'warning' ? "POTENTIAL RISK" : "SCAM DETECTED")}
                  </Text>
                </View>
                <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
@@ -225,11 +237,33 @@ const styles = StyleSheet.create({
   headerSubtitle: { color: '#8E8E93', fontSize: 13, marginTop: 8, lineHeight: 18 },
   trashBtn: { padding: 8, backgroundColor: 'rgba(255, 59, 48, 0.1)', borderRadius: 10 },
   contentBody: { flex: 1, paddingHorizontal: 20 },
-  filterRow: { flexDirection: 'row', gap: 10, marginTop: 25, marginBottom: 15 },
-  whiteChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F2F2F7', borderWidth: 1, borderColor: '#E5E5EA' },
+  
+  // Container to hold the filter scrollview to prevent vertical stretching
+  filterContainer: {
+    height: 70, // Fixed height for the filter area
+    justifyContent: 'center',
+  },
+  filterRow: { 
+    flexDirection: 'row', 
+    gap: 10, 
+    paddingRight: 20,
+    alignItems: 'center', // Crucial: Prevents children from stretching vertically
+  },
+  whiteChip: { 
+    paddingHorizontal: 16, 
+    height: 38, // Fixed chip height
+    borderRadius: 20, 
+    backgroundColor: '#F2F2F7', 
+    borderWidth: 1, 
+    borderColor: '#E5E5EA', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginRight: 10,
+  },
   activeWhiteChip: { backgroundColor: '#0A1220', borderColor: '#0A1220' },
   whiteChipText: { color: '#8E8E93', fontWeight: 'bold', fontSize: 13 },
   activeWhiteChipText: { color: '#FFFFFF' },
+
   emptyText: { textAlign: 'center', marginTop: 100, color: '#8E8E93' },
   card: { backgroundColor: 'white', padding: 16, borderRadius: 18, marginBottom: 12, borderWidth: 1, borderColor: '#F2F2F7', shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
   cardTop: { flexDirection: 'row', alignItems: 'center' },
