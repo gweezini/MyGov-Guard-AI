@@ -21,21 +21,21 @@ app.add_middleware(
 alerts_db = [
     {
         "id": "1", "level": "Critical", "time": "Just Now",
-        "en": {"title": "🚨 PTPTN: Fake Settlement", "desc": "WhatsApp scammers alert."},
-        "zh": {"title": "🚨 PTPTN: 虚假优惠", "desc": "WhatsApp 诈骗预警。"},
-        "ms": {"title": "🚨 PTPTN: Tawaran Palsu", "desc": "Amaran scam WhatsApp."}
+        "en": {"title": "PTPTN: Fake Settlement", "desc": "WhatsApp scammers alert."},
+        "zh": {"title": "PTPTN: 虚假优惠", "desc": "WhatsApp 诈骗预警。"},
+        "ms": {"title": "PTPTN: Tawaran Palsu", "desc": "Amaran scam WhatsApp."}
     },
     {
         "id": "2", "level": "High", "time": "1h ago",
-        "en": {"title": "📱 APK Scam: Cleaning", "desc": "Fake cleaning ads stealing bank info."},
-        "zh": {"title": "📱 APK 诈骗: 清洁服务", "desc": "FB 虚假广告盗取银行信息。"},
-        "ms": {"title": "📱 Scam APK: Cuci Rumah", "desc": "Iklan cuci rumah palsu mencuri login bank."}
+        "en": {"title": "APK Scam: Cleaning", "desc": "Fake cleaning ads stealing bank info."},
+        "zh": {"title": "APK 诈骗: 清洁服务", "desc": "FB 虚假广告盗取银行信息。"},
+        "ms": {"title": "APK Scam: Cuci Rumah", "desc": "Iklan cuci rumah palsu mencuri login bank."}
     }
 ]
 
 @app.get("/alerts")
 async def get_alerts(lang: str = "en"):
-    print(f"📡 DEBUG: App calling /alerts! Language: {lang}")
+    print(f"DEBUG: App calling /alerts! Language: {lang}")
     localized = []
     try:
         for a in alerts_db:
@@ -52,10 +52,10 @@ async def get_alerts(lang: str = "en"):
                 "Desc": str(content["desc"])
             }
             localized.append(item)
-        print(f"✅ DEBUG: Sending {len(localized)} items to phone.")
+        print(f"DEBUG: Sending {len(localized)} items to phone.")
         return localized
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
+        print(f"Error: {str(e)}")
         return []
 
 @app.post("/upload")
@@ -66,7 +66,7 @@ async def upload_document(file: UploadFile = File(...), language: str = Form("en
         analysis = await process_document_workflow(extracted_text, language)
         return {"status": "success", "analysis": analysis}
     except Exception as e:
-        print(f"❌ Upload Error: {str(e)}")
+        print(f"Upload Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/tts")
