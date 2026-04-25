@@ -87,21 +87,19 @@ We adhere to rigorous software engineering standards to ensure enterprise-grade 
 
 ## 🚀 Future Roadmap: Engineering & Experience Evolution
 
-### 1. Scalability & Performance Optimization
-* **Intelligent Caching:** Implementing a **Redis caching layer** to store hashes of previously analyzed documents, enabling near-instant response times for common scam templates and significantly reducing Gemini 2.5 Flash API costs.
-* **Edge-Computing OCR:** Migrating text extraction from the backend to the user's device using **Google ML Kit** or **iOS Vision API** to minimize data upload latency and further enhance user privacy.
+### 1. Scalability & Performance
+* **Intelligent Caching:** Implementing **Redis caching** to enable faster response times and lower Gemini 2.5 Flash API costs for common document formats.
+* **Edge-Computing OCR:** Migrating text extraction to the device using **Google ML Kit** or **iOS Vision API** to reduce upload latency.
+* **High Availability:** Deploying across **multiple regions** to ensure the system remains accessible during localized outages.
 
-### 2. High-Availability Reliability & Architecture
-* **Multi-Region Failover:** Implementing an automated failover strategy across multiple **Google Vertex AI** regions to ensure 99.9% availability for core scam detection services, even during regional outages.
-* **Dynamic Content Management:** Transitioning from hardcoded alerts to a dynamic architecture powered by **PostgreSQL** or **Firebase** combined with a central **CMS**, allowing for real-time scam pattern updates without requiring app reinstalls.
+### 2. Reliability & Intelligence
+* **Dynamic Threat Intelligence:** Transitioning to a dynamic scam alert database powered by **PostgreSQL** or **Firebase**.
+* **National Safety Integration:** Establishing real-time data pipelines with **PDRM** and **Malaysian CERT** for the most up-to-date scam pattern detection.
 
-### 3. User Engagement & Personalized Experience
-* **Proactive Protection:** Integrating **Firebase Cloud Messaging (FCM)** and **Apple Push Notification Service (APNs)** to deliver real-time, high-priority scam alerts directly to users' lock screens.
-* **User-Centric Intelligence:** Developing personalized subscription models for specific scam categories and a comprehensive **alert history tracker** to allow users to review and manage past threats.
-
-### 4. Real-Time Automation & Threat Intelligence
-* **Instantaneous Communication:** Shifting from a traditional request-response model to **WebSockets** or **Server-Sent Events (SSE)** to provide real-time analysis progress and instant threat updates without manual refreshes.
-* **National Threat Integration:** Establishing automated data pipelines with **Malaysian CERT** and **PDRM** threat feeds to enable the system to automatically flag emerging scam patterns and localized fraud trends.
+### 3. User Engagement & Experience
+* **Instantaneous Communication:** Utilizing **WebSockets** or **SSE** for real-time analysis progress updates.
+* **Proactive Alerts:** Integrating **push notifications** to warn users about emerging localized scam threats.
+* **Personalized Security:** Allowing users to manage **personalized subscriptions** and track their own alert history.
 
 
 ---
