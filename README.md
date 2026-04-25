@@ -12,8 +12,8 @@
 
 ## 📂 Project Documentation
 Access the comprehensive technical and product documentation for MyGov-Guard AI:
-* **Product Requirement Document (PRD):** [📄 View PRD](https://github.com/gweezini/MyGov-Guard-AI/blob/main/Product%20Requirement%20Documentation_Gimme4.pdf))
-* **System Analysis Documentation (SAD):** [📄 View SAD](https://github.com/gweezini/MyGov-Guard-AI/blob/main/System%20Analysis%20Documentation_Gimme4.pdf))
+* **Product Requirement Document (PRD):** [📄 View PRD](https://github.com/gweezini/MyGov-Guard-AI/blob/main/Product%20Requirement%20Documentation_Gimme4.pdf)
+* **System Analysis Documentation (SAD):** [📄 View SAD](https://github.com/gweezini/MyGov-Guard-AI/blob/main/System%20Analysis%20Documentation_Gimme4.pdf)
 * **Quality Assurance Testing Documentation (QATD):** [📄 View QATD](https://github.com/gweezini/MyGov-Guard-AI/blob/main/Sample%20Testing%20Analysis%20Documentation%20(Preliminary)_Gimme4.pdf)
 
 ---
