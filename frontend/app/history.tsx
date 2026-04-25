@@ -11,7 +11,7 @@ import { LanguageContext } from './_layout';
  * - Added: Clear All History function with a red trash icon.
  */
 export default function HistoryScreen() {
-  const { t } = useContext(LanguageContext);
+  const { t, lang } = useContext(LanguageContext);
   
   const [fullHistory, setFullHistory] = useState([]); 
   const [displayHistory, setDisplayHistory] = useState([]); 
@@ -76,21 +76,22 @@ export default function HistoryScreen() {
   }, [filter, fullHistory]);
 
   /**
-   * 🌟 NEW: Clear All History with Confirmation Alert
+   * Clear All History with Confirmation Alert
    */
   const handleClearHistory = () => {
     Alert.alert(
-      t.historyTitle,
-      "Delete all scan history? This action cannot be reversed.",
+      t.historyTitle, 
+      lang === 'zh' ? "确定要删除所有记录吗？此操作不可撤销。" : 
+      (lang === 'ms' ? "Sahkan padam semua sejarah? Tindakan ini tidak boleh diundur." : 
+      "Delete all scan history? This action cannot be reversed."),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t.back, style: "cancel" },
         { 
-          text: "Delete All", 
+          text: lang === 'zh' ? "全部删除" : (lang === 'ms' ? "Padam Semua" : "Delete All"), 
           style: "destructive", 
           onPress: async () => {
             await AsyncStorage.removeItem('user_history');
-            setFullHistory([]);
-            setDisplayHistory([]);
+            getHistory(); 
             setFilter('All');
           } 
         }
