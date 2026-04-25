@@ -1,17 +1,17 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form 
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
 from zhipu_service import process_document_workflow
 from ocr_service import extract_text_from_image
 
-# Load the secrets from your .env file
+# Load environment variables from your .env file
 load_dotenv()
 
-# Initialize FastAPI
-app = FastAPI(title="MyGov-Guard AI Backend", version="1.0")
+# Initialize FastAPI app
+app = FastAPI(title="MyGov-Guard AI Backend", version="1.1")
 
-# Setup CORS so your React Native frontend can communicate with this API
+# Configure CORS to allow communication with React Native (Expo)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
@@ -22,53 +22,73 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
+    """Health check endpoint to verify backend status."""
     return {"message": "MyGov-Guard AI Backend is running!"}
 
 @app.post("/upload")
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(
+    file: UploadFile = File(...), 
+    language: str = Form("en") 
+):
     """
-    Receives images or PDFs from the mobile app. 
-    First, it extracts text using our OCR service, then sends it to 
-    the AI brain (Zhipu) for scam analysis.
+    Receives images or PDFs, extracts text via OCR, and requests 
+    a localized AI analysis based on the provided language.
     """
     try:
-        # Step 1: The Bouncer check. We now allow BOTH images and PDFs to enter!
+        # Step 1: Validate file type (Images and PDFs allowed)
         if not file.content_type.startswith("image/") and file.content_type != "application/pdf":
             raise HTTPException(status_code=400, detail="Invalid file type. Please upload an image or PDF.")
         
-        # Step 2: Read the file data into memory
+        # Step 2: Read file contents into memory
         contents = await file.read()
         file_size_kb = len(contents) / 1024
         
-        print(f"\n🚀 Received a new file: {file.filename}")
+        # Log receiving details for debugging
+        print(f"\n🚀 Received file: {file.filename} | Target Language: {language}")
         
-        # Step 3: Extract the text. 
-        # (Crucial detail: passing the filename so OCR knows whether to use Tesseract for images or Poppler for PDFs!)
+        # Step 3: OCR Process - Extract text from the uploaded file
         extracted_text = await extract_text_from_image(contents, filename=file.filename)
         
+        # Step 4: Handle cases where no text is detected (low quality image/blank doc)
         if not extracted_text or len(extracted_text.strip()) == 0:
-            print("⚠️ No readable text found. Sending friendly error to App.")
+            print("⚠️ No readable text found. Sending localized error tips.")
+            
+            # Localized error messages for the UI
+            error_details = {
+                "zh": {
+                    "summary": "⚠️ 未发现可读文字。请确保上传的文档清晰可见。",
+                    "steps": ["重新拍摄清晰的照片", "确保图片中有文字内容", "不要上传风景照或空白照片"]
+                },
+                "ms": {
+                    "summary": "⚠️ Tiada teks dapat dibaca. Sila pastikan dokumen yang dimuat naik adalah jelas.",
+                    "steps": ["Ambil gambar yang lebih jelas", "Pastikan terdapat teks dalam imej", "Jangan muat naik gambar kosong"]
+                },
+                "en": {
+                    "summary": "⚠️ No readable text found. Please ensure you are uploading a clear document.",
+                    "steps": ["Take a clearer photo", "Make sure there is text in the image", "Do not upload blank photos"]
+                }
+            }
+            
+            current_error = error_details.get(language, error_details["en"])
+            
             return {
-                "status": "success",  # Use success so the network doesn't throw 500
+                "status": "success",
                 "analysis": {
                     "status": "error",
-                    "summary": "⚠️ No readable text found. Please ensure you are uploading a clear document.",
-                    "steps": [
-                        "Take a clearer photo",
-                        "Make sure there is text in the image",
-                        "Do not upload scenery or blank photos"
-                    ]
+                    "summary": current_error["summary"],
+                    "steps": current_error["steps"]
                 }
             }
         
-        print("🤖 Text successfully extracted! Sending to Zhipu AI for analysis...")
+        print(f"🤖 Text extracted. Requesting AI analysis in: {language}")
         
-        # Step 4: Pass the extracted text to your custom 3-stage GLM-4 workflow
-        analysis_result = await process_document_workflow(extracted_text)
+        # Step 5: Send text and language preference to the Zhipu AI Workflow
+        # The 'language' parameter ensures the AI responds in English, Malay, or Chinese.
+        analysis_result = await process_document_workflow(extracted_text, language)
         
         print("✅ AI Analysis Complete!")
         
-        # Step 5: Send everything back to the mobile app
+        # Step 6: Return final localized result to mobile app
         return {
             "status": "success",
             "filename": file.filename,
@@ -77,14 +97,14 @@ async def upload_document(file: UploadFile = File(...)):
         }
         
     except Exception as e:
-        # If something crashes, log it to the terminal and let the app know
+        # Log backend crashes to terminal
         print(f"❌ Backend Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
     print("\n" + "="*50)
-    print("🚀 API Docs available at: http://127.0.0.1:8000/docs")
+    print("🚀 API Ready. Docs: http://127.0.0.1:8000/docs")
     print("="*50 + "\n")
-    # reload=True means the server auto-restarts every time you hit save. Super handy!
+    # Auto-reload enabled for easier development
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
