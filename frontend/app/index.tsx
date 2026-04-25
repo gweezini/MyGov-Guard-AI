@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
-import { LanguageContext } from './_layout'; 
+import { useRouter } from 'expo-router';
+import { LanguageContext } from './_layout';
 
 /**
  * The Dashboard (Home) Screen.
@@ -11,9 +12,10 @@ import { LanguageContext } from './_layout';
  */
 export default function HomeScreen() {
   const { t } = useContext(LanguageContext);
-  
+  const router = useRouter();
+
   const [stats, setStats] = useState({ total: 0, scams: 0 });
-  const [userName, setUserName] = useState('User'); 
+  const [userName, setUserName] = useState('User');
   const isFocused = useIsFocused(); 
 
   // Refresh data whenever user navigates back to Home tab
@@ -52,7 +54,7 @@ export default function HomeScreen() {
             <Ionicons name="shield-checkmark" size={20} color="#34C759" />
             <Text style={styles.brandName}>MyGov-Guard AI</Text>
           </View>
-          <TouchableOpacity style={styles.notifBtn}>
+          <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/notifications')}>
             <Ionicons name="notifications" size={22} color="white" />
           </TouchableOpacity>
         </View>
