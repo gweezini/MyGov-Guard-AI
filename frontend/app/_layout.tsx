@@ -40,6 +40,9 @@ export const translations = {
     lang: "Language",
     editProfile: "Edit Profile",
     notifications: "Notification Settings",
+    notifTitle: "Alerts",
+    notifSub: "Latest scam warnings and security alerts",
+    notifEmpty: "No alerts right now — you're all clear!",
     help: "Help Centre",
     bug: "Report a Bug",
     about: "About",
@@ -81,6 +84,9 @@ export const translations = {
     lang: "Bahasa",
     editProfile: "Edit Profil",
     notifications: "Tetapan Notifikasi",
+    notifTitle: "Amaran",
+    notifSub: "Amaran scam terkini dan amaran keselamatan",
+    notifEmpty: "Tiada amaran buat masa ini — anda selamat!",
     help: "Pusat Bantuan",
     bug: "Laporkan Bug",
     about: "Mengenai Kami",
@@ -122,6 +128,9 @@ export const translations = {
     lang: "语言选择",
     editProfile: "编辑资料",
     notifications: "通知设置",
+    notifTitle: "安全预警",
+    notifSub: "最新诈骗警告和安全提醒",
+    notifEmpty: "当前无预警 — 一切安全！",
     help: "帮助中心",
     bug: "反馈问题",
     about: "关于我们",
@@ -182,6 +191,9 @@ export default function TabLayout() {
         <Tabs.Screen name="profile" options={{
           title: t.profile,
           tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} />,
+        }} />
+        <Tabs.Screen name="notifications" options={{
+          href: null,
         }} />
       </Tabs>
     </LanguageContext.Provider>
