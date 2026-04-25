@@ -148,8 +148,12 @@ export default function ScanScreen() {
    */
   const onPlaybackStatusUpdate = (status: any) => {
     if (status.isLoaded) {
+      // Only update duration if it's a valid positive number (fixes iOS jump bug)
+      if (status.durationMillis && status.durationMillis > 0) {
+        setDuration(status.durationMillis);
+      }
+      
       setPosition(status.positionMillis);
-      setDuration(status.durationMillis || 0);
       setIsPlaying(status.isPlaying);
       setIsBuffering(status.isBuffering);
       
@@ -166,6 +170,13 @@ export default function ScanScreen() {
    */
   const handlePlayPause = async () => {
     try {
+      // 0. Ensure iOS Audio is configured correctly (fixes silent mode issues)
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+      });
+
       // 1. If no sound exists, load it from the backend
       if (!sound) {
         const hostUri = Constants.expoConfig?.hostUri;
@@ -177,7 +188,10 @@ export default function ScanScreen() {
         setIsBuffering(true);
         const { sound: newSound } = await Audio.Sound.createAsync(
           { uri: ttsUrl },
-          { shouldPlay: true },
+          { 
+            shouldPlay: true,
+            progressUpdateIntervalMillis: 100, // Faster updates for smoother bar
+          },
           onPlaybackStatusUpdate
         );
         setSound(newSound);
