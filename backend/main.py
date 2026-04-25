@@ -2,7 +2,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Response
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
-from zhipu_service import process_document_workflow, generate_speech_audio
+from gemini_service import process_document_workflow, generate_speech_audio
 from ocr_service import extract_text_from_image
 
 load_dotenv()
@@ -40,14 +40,12 @@ async def get_alerts(lang: str = "en"):
     try:
         for a in alerts_db:
             content = a.get(lang, a["en"])
-            # 🌟 字段双重备份：同时提供小写和大写，防止前端代码写错
             item = {
                 "id": str(a["id"]),
                 "level": str(a["level"]),
                 "time": str(a["time"]),
                 "title": str(content["title"]),
                 "desc": str(content["desc"]),
-                # 额外备份（防止前端用大写开头）
                 "Title": str(content["title"]),
                 "Desc": str(content["desc"])
             }
