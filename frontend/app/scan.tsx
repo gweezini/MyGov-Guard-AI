@@ -22,7 +22,7 @@ export default function ScanScreen() {
   const [duration, setDuration] = useState(0);
   const [isBuffering, setIsBuffering] = useState(false);
 
-  // --- History Logic ---
+  // --- Save to Local History ---
   const saveToHistory = async (status: string, summary: string, fileName: string, steps: string[]) => {
     try {
       const existingData = await AsyncStorage.getItem('user_history');
@@ -39,10 +39,11 @@ export default function ScanScreen() {
     } catch (error) { console.error("Storage Error:", error); }
   };
 
+  // --- File Upload Logic ---
   const uploadFile = async (uri: string, name: string, type: string) => {
     setLoading(true);
     setResult(null);
-    if (sound) { await sound.unloadAsync(); setSound(null); setPosition(0); }
+    if (sound) { await sound.unloadAsync(); setSound(null); setPosition(0); setDuration(0); }
 
     const hostUri = Constants.expoConfig?.hostUri;
     const hostIp = hostUri?.split(':')[0];
@@ -72,30 +73,33 @@ export default function ScanScreen() {
         }
       }
     } catch (error) {
-      setResult({ error: true, status: 'error', summary: "⚠️ Connection Failed", steps: ["Check WiFi"] });
+      setResult({ error: true, status: 'error', summary: "⚠️ Connection Failed: Check WiFi and Backend.", steps: ["Ensure server is running"] });
     } finally { setLoading(false); }
   };
 
-  // --- 🌟 FIXED AUDIO LOGIC FOR iOS ---
+  // --- Audio Logic ---
+  useEffect(() => {
+    return () => { if (sound) { sound.unloadAsync(); } };
+  }, [sound]);
+
   const onPlaybackStatusUpdate = (status: any) => {
     if (status.isLoaded) {
       setIsPlaying(status.isPlaying);
       setIsBuffering(status.isBuffering);
       setPosition(status.positionMillis || 0);
 
-      // 🌟 MAGIC FIX: If duration is missing/invalid (common on iOS streaming)
+      // iOS Fix: Estimate duration for streaming if it returns 0/-1
       if (status.durationMillis && status.durationMillis > 0) {
         setDuration(status.durationMillis);
       } else if (status.positionMillis > 0 && duration === 0) {
-        // Fallback: Estimate duration based on summary length (rough guess for the slider to move)
-        // Average speaking speed is about 150ms per character
-        const estimatedDur = result?.summary ? result.summary.length * 200 : 10000;
+        const estimatedDur = result?.summary ? result.summary.length * 180 : 10000;
         setDuration(estimatedDur);
       }
 
       if (status.didJustFinish) {
         setIsPlaying(false);
         setPosition(0);
+        sound?.setPositionAsync(0);
       }
     }
   };
@@ -108,11 +112,8 @@ export default function ScanScreen() {
         const status: any = await sound.getStatusAsync();
         if (status.isPlaying) {
           await sound.pauseAsync();
-          setIsPlaying(false);
         } else {
-          // If paused, just resume without reloading (better for progress)
           await sound.playAsync();
-          setIsPlaying(true);
         }
         return;
       }
@@ -145,6 +146,10 @@ export default function ScanScreen() {
     }
   };
 
+  const onSliderValueChange = async (value: number) => {
+    if (sound) { await sound.setPositionAsync(value); }
+  };
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.headerArea}>
@@ -173,15 +178,27 @@ export default function ScanScreen() {
 
         {loading && (
           <View style={styles.loaderBox}>
-            <ActivityIndicator size="large" color="#007AFF" /><Text style={styles.loaderText}>{t.analyzing}</Text>
+            <ActivityIndicator size="large" color="#007AFF" />
+            <Text style={styles.loaderText}>{t.analyzing}</Text>
           </View>
         )}
 
         {result && !loading && (
           <View style={[styles.resultReport, result.status === 'scam' && styles.scamBorder]}>
-            <View style={[styles.reportHeader, { backgroundColor: result.error ? '#4A4A4A' : (result.status === 'safe' ? '#34C759' : (result.status === 'warning' ? '#FF9500' : '#FF3B30')) }]}>
-               <Ionicons name={result.status === 'safe' ? "checkmark-circle" : "alert-circle"} size={50} color="white" />
-               <Text style={styles.reportStatusText}>{result.status === 'safe' ? "OFFICIAL VERIFIED" : (result.status === 'warning' ? "POTENTIAL RISK" : "SCAM DETECTED")}</Text>
+            {/* 🌟 INTELLIGENT HEADER COLORS FIX */}
+            <View style={[
+              styles.reportHeader, 
+              { backgroundColor: result.error ? '#4A4A4A' : (result.status === 'safe' ? '#34C759' : (result.status === 'warning' ? '#FF9500' : '#FF3B30')) }
+            ]}>
+               <Ionicons 
+                  name={result.error ? "search-outline" : (result.status === 'safe' ? "checkmark-circle" : "alert-circle")} 
+                  size={50} color="white" 
+               />
+               <Text style={styles.reportStatusText}>
+                 {result.error 
+                    ? (result.summary.includes("text") || result.summary.includes("文字") ? "SCAN FAILED" : "SYSTEM ERROR") 
+                    : (result.status === 'safe' ? "OFFICIAL VERIFIED" : (result.status === 'warning' ? "POTENTIAL RISK" : "SCAM DETECTED"))}
+               </Text>
             </View>
 
             <View style={styles.reportBody}>
@@ -204,6 +221,7 @@ export default function ScanScreen() {
                   minimumValue={0}
                   maximumValue={duration > 0 ? duration : 100}
                   value={position}
+                  onSlidingComplete={onSliderValueChange}
                   minimumTrackTintColor="#007AFF"
                   maximumTrackTintColor="#F2F2F7"
                   thumbTintColor="#007AFF"
@@ -215,6 +233,7 @@ export default function ScanScreen() {
               </View>
 
               <Text style={styles.summaryText}>{result.summary}</Text>
+
               {result.steps && result.steps.length > 0 && (
                 <>
                   <View style={styles.divider} /><Text style={[styles.label, { marginTop: 20 }]}>NEXT STEPS</Text>
