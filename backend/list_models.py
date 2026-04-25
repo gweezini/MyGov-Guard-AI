@@ -1,7 +1,7 @@
 import os
 import asyncio
 from google import genai
-from dotenv import load_datenv
+from dotenv import load_dotenv
 
 load_dotenv()
 

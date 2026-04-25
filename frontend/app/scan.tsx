@@ -3,6 +3,8 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Audio } from 'expo-av';
+import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 // Import LanguageContext for multi-language support
 import { LanguageContext } from './_layout'; 
@@ -17,6 +19,13 @@ export default function ScanScreen() {
   
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  
+  // Audio Player State
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isBuffering, setIsBuffering] = useState(false);
 
   /**
    * Universal Alert Function
@@ -105,6 +114,103 @@ export default function ScanScreen() {
     }
   };
 
+  /**
+   * Resets and unloads the sound when the language or scan result changes.
+   * This ensures that "Listen" always plays the latest version.
+   */
+  React.useEffect(() => {
+    if (sound) {
+      sound.unloadAsync();
+      setSound(null);
+      setPosition(0);
+      setIsPlaying(false);
+    }
+  }, [lang, result]);
+
+  /**
+   * Cleans up the sound object when the component unmounts
+   */
+  React.useEffect(() => {
+    return sound
+      ? () => {
+          sound.unloadAsync();
+        }
+      : undefined;
+  }, [sound]);
+
+  /**
+   * Handle Audio Playback Status Updates
+   */
+  const onPlaybackStatusUpdate = (status: any) => {
+    if (status.isLoaded) {
+      setPosition(status.positionMillis);
+      setDuration(status.durationMillis || 0);
+      setIsPlaying(status.isPlaying);
+      setIsBuffering(status.isBuffering);
+      
+      // Auto-reset when finished
+      if (status.didJustFinish) {
+        setPosition(0);
+        setIsPlaying(false);
+      }
+    }
+  };
+
+  /**
+   * Premium Text-to-Speech: Loads and plays high-quality cloud audio
+   */
+  const handlePlayPause = async () => {
+    try {
+      // 1. If no sound exists, load it from the backend
+      if (!sound) {
+        const apiUrl = 'http://10.198.102.17:8000';
+        const ttsUrl = `${apiUrl}/tts?text=${encodeURIComponent(result.summary)}&language=${lang}`;
+        
+        setIsBuffering(true);
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { uri: ttsUrl },
+          { shouldPlay: true },
+          onPlaybackStatusUpdate
+        );
+        setSound(newSound);
+      } 
+      // 2. If sound exists, toggle play/pause
+      else {
+        if (isPlaying) {
+          await sound.pauseAsync();
+        } else {
+          // If at the end, restart
+          if (position >= duration) {
+            await sound.setPositionAsync(0);
+          }
+          await sound.playAsync();
+        }
+      }
+    } catch (error) {
+      console.error("Playback Error:", error);
+      Alert.alert("Audio Error", "Could not load the AI voice. Please try again.");
+    }
+  };
+
+  /**
+   * Stops the sound and resets position
+   */
+  const stopSound = async () => {
+    if (sound) {
+      await sound.stopAsync();
+      setPosition(0);
+    }
+  };
+
+  /**
+   * Handle Slider Dragging (Seeking)
+   */
+  const onSliderValueChange = async (value: number) => {
+    if (sound) {
+      await sound.setPositionAsync(value);
+    }
+  };
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.headerArea}>
@@ -179,7 +285,43 @@ export default function ScanScreen() {
             </View>
 
             <View style={styles.reportBody}>
-              <Text style={styles.label}>AI SUMMARY</Text>
+              <View style={styles.labelRow}>
+                <Text style={styles.label}>AI ANALYSIS PLAYER</Text>
+                <View style={styles.audioControls}>
+                  <TouchableOpacity onPress={handlePlayPause} style={styles.speakerBtn}>
+                    {isBuffering && !isPlaying ? (
+                      <ActivityIndicator size="small" color="#007AFF" />
+                    ) : (
+                      <Ionicons name={isPlaying ? "pause" : "play"} size={18} color="#007AFF" />
+                    )}
+                    <Text style={styles.speakerText}>{isPlaying ? "Pause" : "Play"}</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity onPress={stopSound} style={[styles.speakerBtn, { marginLeft: 8, backgroundColor: '#FFE5E5' }]}>
+                    <Ionicons name="stop" size={18} color="#FF3B30" />
+                    <Text style={[styles.speakerText, { color: '#FF3B30' }]}>Stop</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              
+              {/* Draggable Progress Slider */}
+              <View style={styles.sliderContainer}>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={0}
+                  maximumValue={duration}
+                  value={position}
+                  onSlidingComplete={onSliderValueChange}
+                  minimumTrackTintColor="#007AFF"
+                  maximumTrackTintColor="#F2F2F7"
+                  thumbTintColor="#007AFF"
+                />
+                <View style={styles.timeRow}>
+                  <Text style={styles.timeText}>{Math.floor(position / 1000)}s</Text>
+                  <Text style={styles.timeText}>{Math.floor(duration / 1000)}s</Text>
+                </View>
+              </View>
+
               <Text style={styles.summaryText}>{result.summary}</Text>
 
               {result.steps && result.steps.length > 0 && (
@@ -230,6 +372,14 @@ const styles = StyleSheet.create({
   stepBox: { flexDirection: 'row', marginTop: 16, alignItems: 'flex-start' },
   stepNum: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#F2F2F7', textAlign: 'center', lineHeight: 24, fontSize: 12, fontWeight: 'bold', color: '#0A1220', marginRight: 12 },
   stepText: { flex: 1, fontSize: 14, color: '#48484A', lineHeight: 22 },
+  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  audioControls: { flexDirection: 'row', alignItems: 'center' },
+  speakerBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F2F2F7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
+  speakerText: { fontSize: 11, fontWeight: 'bold', color: '#007AFF', marginLeft: 4 },
+  sliderContainer: { marginBottom: 20 },
+  slider: { width: '100%', height: 40 },
+  timeRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 10 },
+  timeText: { fontSize: 10, color: '#8E8E93', fontWeight: 'bold' },
   resetBtn: { marginTop: 35, padding: 10, alignItems: 'center' },
   resetText: { color: '#007AFF', fontWeight: 'bold', fontSize: 14, textDecorationLine: 'underline' }
 });
