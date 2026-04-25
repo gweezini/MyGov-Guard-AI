@@ -8,6 +8,7 @@ import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 // Import LanguageContext for multi-language support
 import { LanguageContext } from './_layout'; 
+import Constants from 'expo-constants';
 
 /**
  * Scan Screen Component
@@ -68,13 +69,17 @@ export default function ScanScreen() {
     setLoading(true);
     setResult(null);
 
+    const hostUri = Constants.expoConfig?.hostUri;
+    const hostIp = hostUri?.split(':')[0];
+    const apiUrl = hostIp ? `http://${hostIp}:8000` : 'http://localhost:8000';
+
+
     const formData = new FormData();
     // @ts-ignore
     formData.append('file', { uri, name, type });
     formData.append('language', lang); 
 
     try {
-      const apiUrl = 'http://10.198.102.17:8000'; 
       const response = await fetch(`${apiUrl}/upload`, {
         method: 'POST',
         body: formData,
